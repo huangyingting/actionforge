@@ -140,7 +140,8 @@ test('bundles selected clips into a ZIP and composes body regions', async ({ pag
   await openWorkspace(page);
   for (const id of ['walk_loop', 'idle_loop']) {
     const pick = page.locator(`.lib-tile[data-id="${id}"] .lib-tile__pick`);
-    await pick.click();
+    await pick.focus();
+    await pick.press('Space');
     await expect(pick).toHaveAttribute('aria-checked', 'true');
   }
   await expect(page.locator('#lib-bundle-count')).toContainText('2');
