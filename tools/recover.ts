@@ -125,6 +125,11 @@ while (pending.size) {
   for (const url of batch) pending.delete(url);
   await Promise.all(batch.filter(url => !completed.has(url)).map(download));
 }
+const optionalAnimals = 'assets/animation-library/animals/list.json';
+if (!inventory.some(file => file.path === optionalAnimals)) {
+  await mkdir(path.join('public', path.dirname(optionalAnimals)), { recursive: true });
+  await writeFile(path.join('public', optionalAnimals), '{"items":[]}\n');
+}
 await mkdir('src', { recursive: true });
 await writeFile('public/recovery-inventory.json', JSON.stringify({
   origin: origin.href, recoveredAt: new Date().toISOString(),

@@ -32,3 +32,7 @@ the original scene reader restores it without a server or external service.
 Original server databases, existing short-link records, private files and
 unpublished source cannot be recovered from the public deployment.
 The original third-party social and support links remain external.
+
+The published site returns 404 for its optional animals/list.json catalog.
+An empty local catalog preserves its existing no-animals behavior without a
+failed network request on GitHub Pages.
