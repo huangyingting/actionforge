@@ -36,7 +36,11 @@ export function installPagesCompatibility(base: string): void {
     const anchor = (event.target as Element | null)?.closest<HTMLAnchorElement>('a[href]');
     if (!anchor) return;
     const href = anchor.getAttribute('href');
-    if (href === '/') anchor.href = `${location.origin}${base}`;
+    if (href && /^(?:\.\/|\/)?(?:index|motion-lab|support)\.html(?:[?#]|$)/.test(href)) {
+      const target = new URL(href, location.href);
+      const route = target.pathname.split('/').pop()!.replace('.html', '');
+      anchor.href = `${location.origin}${base}${route === 'index' ? '' : route}${target.search}${target.hash}`;
+    } else if (href === '/') anchor.href = `${location.origin}${base}`;
     else if (href?.startsWith('/')) anchor.href = resolvePagesURL(href, base, location.origin);
   }, { capture: true });
 }

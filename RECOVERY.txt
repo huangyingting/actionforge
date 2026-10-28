@@ -1,30 +1,60 @@
-ActionForge deployment recovery
+ActionForge source reconstruction
 
-Recovered from https://actionforge.app/ at the owner's request.
-The deployed application modules, styles, fonts, animations and models are
-preserved under public/. THIRD-PARTY-NOTICES.txt retains the original notices.
-public/recovery-inventory.json records each recovered file's original SHA-256.
+Reconstructed from https://actionforge.app/ at the owner's request.
+The application builds with Next.js App Router, React and TypeScript tooling.
+There is no public/scripts directory and no downloaded application bundle in
+the runtime. npm run build compiles the checked-in application sources and npm
+dependencies, then exports a static site to out/.
 
-This restores the published JavaScript build, not the lost authoring source.
-The TypeScript code provides the Vite build, GitHub Pages compatibility,
-portable scene sharing, recovery tooling and browser checks.
+Source layout:
+  src/app/          Next routes, metadata and global layout
+  src/components/   Editable React workspace, Motion Lab and support markup
+  src/styles/       Application styles, with self-hosted fonts in src/fonts/
+  src/engine/       Reconstructed animation, viewport, rigging, storage and
+                    export modules; the skin-weight worker is compiled too
+  src/offline/      Typed, source-built service worker
+  tools/finalize.ts Offline manifest generation and output validation
+  tests/            Browser functionality, source-build and worker checks
+
+The engine is decoded, formatted JavaScript reconstructed from the deployment,
+not the lost original TypeScript. String-table obfuscation has been removed,
+module boundaries restored and third-party engines replaced by npm packages.
+Many local identifiers and compatibility export aliases still need semantic
+renaming; the large workspace and Motion Lab controllers are not yet fully
+refactored into small typed modules. Do not mistake this for the original
+authoring source or a complete TypeScript rewrite. JavaScript engine files are
+not yet type-checked or covered by the new TypeScript ESLint policy.
+
+The React shell hydrates before the imperative animation engine starts.
+Navigation between tools uses full document loads so their renderer lifetimes
+remain isolated. EngineBootstrap centralizes page loading and startup errors.
+Existing IndexedDB project and animation stores retain their original schema.
+Three.js, loaders/exporters, compression and video muxing are npm dependencies.
+Recovered models, animations and content remain under public/assets/.
+THIRD-PARTY-NOTICES.txt retains upstream notices. recovery-inventory.json is
+historical provenance, not a list of files required by the source build.
 
 Requirements: Node.js 24 and npm.
   npm ci
   npm run dev
   npm run lint
+  npm run typecheck
   npm run build
+  npm run preview
   npm test
 
+Development runs at http://localhost:3000/ without a deployment prefix.
+Production defaults to /actionforge/; set BASE_PATH for another destination.
+Offline caching is disabled in development to avoid caching development chunks.
 Browser checks use Google Chrome at /usr/bin/google-chrome by default.
 Set CHROME_PATH to use another installed Chromium executable.
-Set BASE_PATH when building for a location other than /actionforge/.
-
-The GitHub Actions workflow publishes dist/ to GitHub Pages on pushes to main.
-To recover a newer published build, run npm run recover. This fetches public
-resources recursively and inspects rendered pages with Playwright.
-Review changes before publishing: changed share-function signatures deliberately
-fail the build rather than silently breaking the static hosting adaptation.
+The GitHub Actions workflow builds and publishes out/ on pushes to main.
+The normal build needs no access to actionforge.app or Git history.
+Optional forensic tools are not build prerequisites: reconstruct.ts takes an
+archived script directory and a separate output directory; migrate-ui.ts
+recreates the initial React shell from the historical recovery commit.
+Their output is a reconstruction baseline, not a replacement for maintained
+sources and subsequent fixes.
 
 GitHub Pages cannot host the original server's /api/share storage.
 New share links therefore encode the scene into a portable URL fragment;

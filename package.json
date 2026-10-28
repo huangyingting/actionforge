@@ -1,16 +1,25 @@
 {
-  "name": "actionforge-recovered",
+  "name": "actionforge",
   "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --host 0.0.0.0",
-    "build": "tsc --noEmit && vite build",
+    "dev": "next dev --webpack -H 0.0.0.0",
+    "build": "next build --webpack && node tools/finalize.ts",
     "lint": "eslint .",
     "test": "playwright test",
-    "preview": "vite preview --host 0.0.0.0",
-    "recover": "node tools/recover.ts",
-    "compare-ui": "node tools/compare-ui.ts"
+    "preview": "node tools/serve.ts",
+    "compare-ui": "node tools/compare-ui.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "^16.0.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "three": "0.165.0",
+    "fflate": "0.8.3",
+    "@comfyorg/fbx-exporter-three": "1.0.1",
+    "mp4-muxer": "^5.2.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
@@ -20,6 +29,10 @@
     "globals": "^15.14.0",
     "typescript": "~5.7.2",
     "typescript-eslint": "^8.19.0",
-    "vite": "^6.0.5"
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "esbuild": "^0.25.0",
+    "parse5": "^8.0.0",
+    "prettier": "^3.6.0"
   }
 }

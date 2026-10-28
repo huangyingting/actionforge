@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import type { Download, Locator, Page } from '@playwright/test';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { zstdDecompressSync } from 'node:zlib';
 import { createShareURL, resolvePagesURL } from '../src/pages-compatibility';
@@ -40,12 +40,58 @@ test('Pages compatibility preserves external URLs and serializes portable scene 
     .toBe('https://example.com/actionforge/#m=1&a=head:20&clip=walk_loop');
 });
 
-test('all recovered files retain their original bytes', async () => {
+test('recovered models, animations and content retain their original bytes', async () => {
   const inventory = JSON.parse(await readFile('public/recovery-inventory.json', 'utf8'));
   expect(inventory.unavailable).toEqual([]);
-  for (const file of inventory.files) {
+  for (const file of inventory.files.filter((file: { path: string }) =>
+    file.path.startsWith('assets/') || /^(faq|news|offline-library)\.json$/.test(file.path))) {
     const data = await readFile(`public/${file.path}`);
     expect(createHash('sha256').update(data).digest('hex'), file.path).toBe(file.sha256);
+  }
+});
+
+test('Next builds source chunks and a working skin-weight worker without published scripts', async ({ page }) => {
+  expect(await readdir('public')).not.toContain('scripts');
+  expect(await readdir('out')).not.toContain('scripts');
+  const directory = 'out/_next/static/chunks';
+  const scripts = await Promise.all((await readdir(directory)).filter(file => file.endsWith('.js'))
+    .map(async file => ({ file, source: await readFile(`${directory}/${file}`, 'utf8') })));
+  const worker = scripts.find(script => /\bself\.onmessage\s*=/.test(script.source));
+  expect(worker).toBeDefined();
+  await page.goto('./');
+  const result = await page.evaluate(file => new Promise<{ index: number[]; weight: number[] }>((resolve, reject) => {
+    const worker = new Worker(new URL(`_next/static/chunks/${file}`, location.href));
+    const timer = setTimeout(() => {
+      worker.terminate();
+      reject(new Error('Skin-weight worker timed out'));
+    }, 20000);
+    worker.onerror = event => {
+      clearTimeout(timer);
+      worker.terminate();
+      reject(new Error(event.message));
+    };
+    worker.onmessage = ({ data }) => {
+      if (data.progress) return;
+      clearTimeout(timer);
+      worker.terminate();
+      if (data.error) reject(new Error(data.error));
+      else resolve({ index: Array.from(data.result.index), weight: Array.from(data.result.weight) });
+    };
+    worker.postMessage({
+      positions: new Float32Array([0, 0, 0, 0, 1, 0, 0.1, 0.5, 0]),
+      index: new Uint32Array([0, 1, 2]),
+      segs: [{ name: 'pelvis', head: [0, 0, 0], tail: [0, 1, 0] }],
+      alone: new Uint8Array(3), held: new Uint8Array(3), cloth: [], top: 1, joints: {},
+      shape: { hip: 0, lat: false, envelope: false, seams: 0 },
+    });
+  }), worker!.file);
+  expect(result.index).toHaveLength(12);
+  expect(result.weight).toHaveLength(12);
+  for (let vertex = 0; vertex < 3; vertex++) {
+    const weights = result.weight.slice(vertex * 4, vertex * 4 + 4);
+    expect(weights.reduce((sum, weight) => sum + weight, 0)).toBeCloseTo(1);
+    expect(weights.every(weight => Number.isFinite(weight) && weight >= 0)).toBe(true);
+    expect(result.index.slice(vertex * 4, vertex * 4 + 4).every(index => index === 0)).toBe(true);
   }
 });
 
