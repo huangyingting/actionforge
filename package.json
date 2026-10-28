@@ -1,0 +1,25 @@
+{
+  "name": "actionforge-recovered",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc --noEmit && vite build",
+    "lint": "eslint .",
+    "test": "playwright test",
+    "preview": "vite preview --host 0.0.0.0",
+    "recover": "node tools/recover.ts",
+    "compare-ui": "node tools/compare-ui.ts"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "@playwright/test": "^1.51.0",
+    "@types/node": "^22.10.0",
+    "eslint": "^9.17.0",
+    "globals": "^15.14.0",
+    "typescript": "~5.7.2",
+    "typescript-eslint": "^8.19.0",
+    "vite": "^6.0.5"
+  }
+}

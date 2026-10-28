@@ -1,0 +1,3538 @@
+/* Animation Library — page styles.
+   Uses the tokens from css/main.css (--primary-color, --bg-*, --font-*) so
+   the page reads as part of the site rather than a bolted-on tool. */
+
+.lib {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 1px;
+    background: var(--border-color);
+    height: calc(100vh - 60px);
+    margin-top: 60px;
+    min-height: 520px;
+}
+
+/* ── left column — tool rail + panel ──────────────────────────────────
+   Rail always visible, panel collapses. The column is `auto` in the grid, so
+   hiding the panel shrinks the whole column to the rail with no extra rule. */
+.lib-left {
+    display: flex;
+    min-height: 0;
+    background: var(--bg-medium);
+    border-right: 1px solid var(--border-color);
+}
+
+.lib-rail {
+    flex: 0 0 auto;
+    width: 46px;
+    display: flex;
+    flex-direction: column;
+    /* Stated explicitly, not left to the default. This was a <nav>, and
+       css/main.css styles bare `nav` for the site header with
+       justify-content: space-between — which parked one button at the top of
+       the column and the other at the bottom. The element is a div now, but
+       being explicit costs nothing and this class of leak is easy to re-create. */
+    justify-content: flex-start;
+    align-items: stretch;
+    margin: 0;
+    max-width: none;
+    gap: 0.2rem;
+    padding: 0.5rem 0.25rem;
+    border-right: 1px solid var(--border-color);
+}
+
+.lib-rail__btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.45rem 0.3rem;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    color: var(--text-muted, #8b98a8);
+    cursor: pointer;
+    font: inherit;
+}
+.lib-rail__btn:hover { color: var(--primary-color); border-color: var(--border-color); }
+.lib-rail__btn.is-on {
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+    background: rgba(9, 197, 204, 0.1);
+}
+/* ── THIS TOOL IS DOING SOMETHING ────────────────────────────────────────────
+   Set by tool-rail's markEdited, and independent of .is-on: a pane can be shut
+   while still reshaping the clip, which is exactly the case you cannot see.
+
+   An amber dot rather than the accent colour, because the accent already means
+   "open" on this button and two meanings in one colour is not a signal. Amber
+   is also what the prop gizmo uses, so it already reads as "you changed this".
+
+   Positioned absolutely so it cannot change the button's size — the rail is a
+   fixed-width strip and a growing button would reflow the whole column. */
+.lib-rail__btn { position: relative; }
+.lib-rail__btn.is-edited::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #e0a03a;
+    box-shadow: 0 0 0 1px var(--bg-medium, #12181f);
+}
+
+.lib-rail__icon { font-size: 0.95rem; line-height: 1; }
+.lib-rail__label { font-size: 0.46rem; letter-spacing: 0.04em; text-transform: uppercase; }
+
+.lib-toolpanel {
+    width: 250px;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 0.75rem 0.7rem;
+}
+/* [hidden] needs the explicit display:none because the rule above would
+   otherwise win on specificity and keep the panel laid out. */
+.lib-toolpanel[hidden] { display: none; }
+.lib-toolpane[hidden] { display: none; }
+
+/* ── stage ─────────────────────────────────────────────────────────── */
+.lib-viewport {
+    position: relative;
+    background: var(--bg-dark);
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+}
+
+.lib-stage {
+    flex: 1;
+    position: relative;
+    min-height: 0;
+    /* The player guards against a zero-size container, but give it a floor
+       so the canvas is never asked to size itself into nothing. */
+    min-width: 1px;
+}
+
+.lib-stage canvas { display: block; width: 100%; height: 100%; }
+
+.lib-hint {
+    position: absolute;
+    left: 1rem;
+    bottom: 1rem;
+    font-family: var(--font-heading);
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    pointer-events: none;
+    text-transform: uppercase;
+}
+
+/* ── status / error overlay ────────────────────────────────────────── */
+.lib-status {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: 1rem;
+    background: rgba(10, 10, 10, 0.92);
+    color: var(--text-secondary);
+    font-family: var(--font-heading);
+    font-size: 0.82rem;
+    text-align: center;
+    padding: 2rem;
+    z-index: 5;
+}
+.lib-status[hidden] { display: none; }
+.lib-status.is-error { color: #ff6b6b; }
+
+/* ── transport ─────────────────────────────────────────────────────── */
+.lib-transport {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.7rem 1rem;
+    background: var(--bg-medium);
+    border-top: 1px solid var(--border-color);
+    flex-wrap: wrap;
+}
+.lib-transport[hidden] { display: none; }
+
+.lib-btn {
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-family: var(--font-heading);
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.42rem 0.75rem;
+    cursor: pointer;
+    transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+.lib-btn:hover { border-color: var(--primary-color); color: var(--primary-color); }
+.lib-btn.is-on { border-color: var(--primary-color); color: var(--primary-color); background: rgba(9, 197, 204, 0.1); }
+
+.lib-btn--play { font-size: 0.95rem; min-width: 3rem; }
+
+/* ── The transport bar's icons (index.html .lib-icons) ─────────────────────
+   Icon only, the name in the tooltip; as tall as the worded buttons beside them. */
+.lib-icons { position: absolute; width: 0; height: 0; overflow: hidden; }
+.lib-btn--svg { display: inline-flex; align-items: center; justify-content: center; min-width: 2.2rem; padding: 0.28rem 0.5rem; }
+.lib-btn--svg svg { width: 16px; height: 16px; display: block; flex-shrink: 0; }
+/* Auto-key: a record dot — hollow when off, filled red when on: the bar's one red (Game Lab's). */
+.lib-btn--rec svg circle { fill: none; }
+.lib-btn--rec.is-on { border-color: #ff5a5a; color: #ff5a5a; background: rgba(255, 90, 90, 0.12); }
+.lib-btn--rec.is-on svg circle { fill: currentColor; }
+.lib-btn--rec.is-on:hover { border-color: #ff5a5a; color: #ff5a5a; }
+/* How the view is drawn: the stage's top right (Blender's place for it) — bones, wireframe, colour or grey. */
+.lib-viewtools { position: absolute; top: 0.75rem; right: 0.75rem; z-index: 5; display: flex; align-items: center; gap: 0.25rem; }
+.lib-viewtools[hidden] { display: none; }
+.lib-viewtools__gap { width: 0.4rem; }
+/* Loop: still a checkbox, dressed as an icon button, lit while checked. */
+.lib-check--icon {
+    position: relative;
+    justify-content: center;
+    min-width: 2.2rem;
+    padding: 0.28rem 0.5rem;
+    color: var(--text-primary);
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+    transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+.lib-check--icon input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+.lib-check--icon svg { width: 16px; height: 16px; display: block; }
+.lib-check--icon:hover { border-color: var(--primary-color); color: var(--primary-color); }
+.lib-check--icon:has(input:checked) { border-color: var(--primary-color); color: var(--primary-color); background: rgba(9, 197, 204, 0.1); }
+.lib-check--icon:has(input:focus-visible) { outline: 1px solid var(--primary-color); outline-offset: 1px; }
+
+.lib-scrub { flex: 1; min-width: 140px; accent-color: var(--primary-color); }
+
+.lib-time {
+    font-family: var(--font-heading);
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    min-width: 8.5ch;
+    font-variant-numeric: tabular-nums;
+}
+
+.lib-select {
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-family: var(--font-heading);
+    font-size: 0.72rem;
+    padding: 0.42rem 0.5rem;
+}
+
+.lib-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: var(--font-heading);
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+}
+.lib-check input { accent-color: var(--primary-color); }
+
+/* ── sidebar ───────────────────────────────────────────────────────── */
+.lib-panel {
+    background: var(--bg-medium);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.lib-panel__head { padding: 1rem; border-bottom: 1px solid var(--border-color); }
+
+.lib-nowplaying { margin-bottom: 0.85rem; }
+.lib-nowplaying h2 {
+    font-family: var(--font-heading);
+    font-size: 1rem;
+    color: var(--primary-color);
+    margin: 0 0 0.2rem;
+    letter-spacing: 0.04em;
+}
+.lib-nowplaying p {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+}
+
+.lib-search {
+    width: 100%;
+    background: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-family: var(--font-heading);
+    font-size: 0.78rem;
+    padding: 0.5rem 0.65rem;
+}
+.lib-search:focus { outline: none; border-color: var(--primary-color); }
+
+.lib-count {
+    display: block;
+    margin-top: 0.5rem;
+    font-family: var(--font-heading);
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.lib-download {
+    display: inline-block;
+    margin-top: 0.6rem;
+    font-family: var(--font-heading);
+    font-size: 0.7rem;
+    color: var(--primary-color);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+.lib-download:hover { border-bottom-color: var(--primary-color); }
+.lib-download[hidden] { display: none; }
+
+/* ── grid ──────────────────────────────────────────────────────────── */
+.lib-grid {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+    padding: 0.35rem;
+    display: grid;
+    /* Tight gutters — the tiles are the content, the gaps are not. A 460px
+       dock minus padding and scrollbar leaves ~410px, so a 104px minimum
+       still lands three per row and degrades to two if narrowed. */
+    grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+    gap: 0.2rem;
+    align-content: start;
+}
+
+.lib-tile[hidden] { display: none; }
+.lib-group[hidden] { display: none; }
+
+.lib-tile {
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+    padding: 0;
+    cursor: pointer;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    transition: border-color var(--transition-fast), transform var(--transition-fast);
+}
+.lib-tile:hover { border-color: var(--primary-color); }
+.lib-tile.is-active { border-color: var(--primary-color); box-shadow: inset 0 0 0 1px var(--primary-color); }
+
+.lib-tile__media {
+    width: 100%;
+    /* Matches the 400x480 preview render — portrait suits a standing
+       character and fits more tiles per column than a square. */
+    aspect-ratio: 5 / 6;
+    object-fit: cover;
+    display: block;
+    background: var(--bg-dark);
+}
+
+.lib-tile__media--placeholder {
+    display: grid;
+    place-content: center;
+    font-family: var(--font-heading);
+    font-size: 1.15rem;
+    letter-spacing: 0.08em;
+    color: hsl(var(--tile-hue, 190) 70% 70%);
+    background:
+        linear-gradient(140deg,
+            hsl(var(--tile-hue, 190) 45% 12%),
+            hsl(var(--tile-hue, 190) 30% 7%));
+}
+
+.lib-tile__body { padding: 0.28rem 0.32rem 0.3rem; display: grid; gap: 0; }
+
+.lib-tile__name {
+    font-family: var(--font-heading);
+    font-size: 0.7rem;
+    color: var(--text-primary);
+    line-height: 1.2;
+    /* Two lines, every card: "Sword Regular A" and "Sword Regular Combo" have
+       to be told apart, and every card the same height keeps the rows even. */
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+    min-height: 2.4em;
+    overflow-wrap: anywhere;
+}
+.lib-tile__meta {
+    font-family: var(--font-heading);
+    font-size: 0.58rem;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+.lib-tile__tags { display: flex; flex-wrap: nowrap; gap: 0.2rem; margin-top: 0.1rem; overflow: hidden; }
+.lib-tag {
+    font-family: var(--font-heading);
+    font-size: 0.52rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--primary-color);
+    border: 1px solid rgba(9, 197, 204, 0.35);
+    padding: 0.05rem 0.22rem;
+    white-space: nowrap;
+}
+
+.lib-empty {
+    grid-column: 1 / -1;
+    font-family: var(--font-heading);
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 2rem 1rem;
+}
+
+/* ── responsive ────────────────────────────────────────────────────── */
+/* Laptop widths: a narrower drawer and grid panel, so the stage keeps its
+   room (the drawer also starts closed below 1500px — library-init.js
+   initDrawer). The handle still opens it. */
+@media (max-width: 1499px) {
+    .lib-drawer { --drawer-w: 200px; }
+    .lib-panel { width: 380px; }
+}
+
+@media (max-width: 900px) {
+    .lib {
+        grid-template-columns: 1fr;
+        grid-template-rows: minmax(320px, 55vh) 1fr auto;
+        height: auto;
+        min-height: 0;
+    }
+    .lib-left {
+        order: 3;
+        flex-direction: column;
+        border-right: none;
+        border-top: 1px solid var(--border-color);
+    }
+    /* Rail goes horizontal on a narrow screen — a vertical strip of icons
+       beside a full-width panel wastes the width that is already scarce. */
+    .lib-rail {
+        flex-direction: row;
+        width: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .lib-toolpanel { width: auto; overflow-y: visible; }
+    .lib-panel { max-height: 70vh; }
+    .lib-transport { gap: 0.6rem; }
+    .lib-time { min-width: auto; }
+}
+
+.lib-btn--go { background: rgba(9, 197, 204, 0.14); border-color: var(--primary-color); color: var(--primary-color); }
+
+/* Checkbox overlay on each tile. Position over the media, not the body, so
+   it never covers the clip name. */
+.lib-tile { position: relative; }
+
+.lib-tile__pick {
+    position: absolute;
+    top: 0.4rem;
+    left: 0.4rem;
+    width: 1rem;
+    height: 1rem;
+    border: 1px solid var(--border-color);
+    background: rgba(10, 10, 10, 0.75);
+    display: grid;
+    place-content: center;
+    cursor: pointer;
+    z-index: 2;
+    transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+.lib-tile__pick:hover { border-color: var(--primary-color); }
+.lib-tile__pick:focus-visible { outline: 1px solid var(--primary-color); outline-offset: 1px; }
+.lib-tile__pick.is-checked { background: var(--primary-color); border-color: var(--primary-color); }
+.lib-tile__pick.is-checked::after {
+    content: '';
+    width: 0.32rem;
+    height: 0.6rem;
+    border: solid var(--bg-dark);
+    border-width: 0 2px 2px 0;
+    transform: translateY(-1px) rotate(45deg);
+}
+
+.lib-tile.is-picked { border-color: rgba(9, 197, 204, 0.55); }
+
+/* ── export dock ───────────────────────────────────────────────────── */
+/* Pinned to the bottom of the sidebar and always rendered. Ticking a tile
+   enables the button rather than revealing a toolbar, so nothing reflows
+   under the cursor. */
+.lib-dock {
+    flex: 0 0 auto;
+    padding: 0.75rem;
+    background: var(--bg-dark);
+    border-top: 1px solid var(--border-color);
+    display: grid;
+    gap: 0.5rem;
+}
+
+.lib-dock__row { display: flex; align-items: center; gap: 0.4rem; }
+
+.lib-dock__count {
+    flex: 1;
+    font-family: var(--font-heading);
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.lib-dock__count.is-active { color: var(--primary-color); }
+
+.lib-btn--sm { padding: 0.3rem 0.55rem; font-size: 0.64rem; }
+
+.lib-btn--go {
+    width: 100%;
+    background: rgba(9, 197, 204, 0.14);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    padding: 0.55rem;
+}
+.lib-btn--go:disabled {
+    background: var(--bg-light);
+    border-color: var(--border-color);
+    color: var(--text-muted);
+    cursor: not-allowed;
+}
+.lib-btn--go:disabled:hover { border-color: var(--border-color); color: var(--text-muted); }
+
+.lib-dock .lib-download { margin-top: 0; text-align: center; }
+
+/* Checkbox overlay on each tile. Sits over the media so it never covers
+   the clip name. */
+.lib-tile { position: relative; }
+
+.lib-tile__pick {
+    position: absolute;
+    top: 0.4rem;
+    left: 0.4rem;
+    width: 1rem;
+    height: 1rem;
+    border: 1px solid var(--border-color);
+    background: rgba(10, 10, 10, 0.75);
+    display: grid;
+    place-content: center;
+    cursor: pointer;
+    z-index: 2;
+    transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+.lib-tile__pick:hover { border-color: var(--primary-color); }
+.lib-tile__pick:focus-visible { outline: 1px solid var(--primary-color); outline-offset: 1px; }
+.lib-tile__pick.is-checked { background: var(--primary-color); border-color: var(--primary-color); }
+.lib-tile__pick.is-checked::after {
+    content: '';
+    width: 0.32rem;
+    height: 0.6rem;
+    border: solid var(--bg-dark);
+    border-width: 0 2px 2px 0;
+    transform: translateY(-1px) rotate(45deg);
+}
+
+.lib-tile.is-picked { border-color: rgba(9, 197, 204, 0.55); }
+
+/* ── tag chips ─────────────────────────────────────────────────────── */
+.lib-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin-top: 0.6rem;
+    max-height: 6.5rem;
+    overflow-y: auto;
+}
+.lib-chips:empty { display: none; }
+.lib-chips[hidden] { display: none; }
+.lib-check--group[hidden] { display: none; }
+
+.lib-chip {
+    font-family: var(--font-heading);
+    font-size: 0.6rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    background: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    padding: 0.2rem 0.4rem;
+    cursor: pointer;
+    transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+.lib-chip:hover { border-color: var(--primary-color); color: var(--primary-color); }
+.lib-chip.is-on {
+    background: rgba(9, 197, 204, 0.16);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+.lib-chip--clear { color: var(--text-muted); border-style: dashed; }
+
+.lib-check--group { margin-top: 0.55rem; font-size: 0.66rem; }
+
+/* ── category groups ───────────────────────────────────────────────── */
+/* Headers span the full grid width so tiles keep flowing underneath. */
+.lib-group {
+    grid-column: 1 / -1;
+    margin: 0.5rem 0 0.15rem;
+    font-family: var(--font-heading);
+    font-size: 0.63rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.3rem;
+    /* Sticky offset must match the grid's padding exactly, or the header
+       jumps when grouping is switched on. */
+    position: sticky;
+    top: -0.35rem;
+    background: var(--bg-medium);
+    padding-top: 0.35rem;
+    z-index: 3;
+}
+.lib-group:first-child { margin-top: 0; }
+
+/* ── virtualization ────────────────────────────────────────────────── */
+/* Browser-native windowing: off-screen tiles skip layout, style and paint
+   entirely. contain-intrinsic-size reserves their space so the scrollbar
+   stays honest. Handles thousands of tiles with no JS bookkeeping. */
+.lib-tile {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 152px;
+}
+
+/* ── left detail panel ─────────────────────────────────────────────── */
+/* Right-hand block: collapsible drawer + the grid panel, side by side. */
+.lib-right { display: flex; min-height: 0; }
+
+.lib-drawer {
+    --drawer-w: 240px;
+    width: var(--drawer-w);
+    flex: 0 0 auto;
+    background: var(--bg-medium);
+    border-left: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+/* Plain display:none. Animating width on a flex item means fighting its
+   content's automatic minimum size, which silently wins and leaves the drawer
+   open with no error anywhere. Not worth the fragility for a collapse. */
+.lib-drawer.is-closed { display: none; }
+
+/* The handle is the only part that never hides. */
+.lib-handle {
+    flex: 0 0 auto;
+    width: 18px;
+    background: var(--bg-light);
+    border: none;
+    border-left: 1px solid var(--border-color);
+    border-right: 1px solid var(--border-color);
+    color: var(--text-muted);
+    font-family: var(--font-heading);
+    font-size: 0.8rem;
+    cursor: pointer;
+    padding: 0;
+    transition: background var(--transition-fast), color var(--transition-fast);
+}
+.lib-handle:hover { background: var(--bg-medium); color: var(--primary-color); }
+
+.lib-drawer__block {
+    padding: 0.9rem 0.85rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.lib-drawer__block:last-child { border-bottom: none; }
+
+.lib-drawer__title {
+    margin: 0 0 0.3rem;
+    font-family: var(--font-heading);
+    font-size: 0.95rem;
+    letter-spacing: 0.04em;
+    color: var(--primary-color);
+    line-height: 1.2;
+}
+
+.lib-drawer__meta {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: 0.66rem;
+    line-height: 1.6;
+    color: var(--text-muted);
+    letter-spacing: 0.03em;
+}
+
+.lib-drawer__head {
+    margin: 0 0 0.5rem;
+    font-family: var(--font-heading);
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.lib-drawer__hint {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: 0.62rem;
+    color: var(--text-muted);
+}
+.lib-drawer__hint[hidden] { display: none; }
+
+.lib-drawer__tags { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.55rem; }
+.lib-drawer__tags:empty { display: none; }
+
+.lib-drawer .lib-chips { margin-top: 0; max-height: none; overflow: visible; }
+.lib-chip--sm { font-size: 0.56rem; padding: 0.15rem 0.32rem; }
+
+/* Root-motion badge — only drawn on clips that travel, so it reads as a
+   distinction rather than decoration. */
+.lib-tile__rm {
+    position: absolute;
+    top: 0.35rem;
+    right: 0.35rem;
+    z-index: 2;
+    font-family: var(--font-heading);
+    font-size: 0.6rem;
+    line-height: 1;
+    padding: 0.16rem 0.26rem;
+    color: var(--bg-dark);
+    background: var(--primary-color);
+}
+
+/* Timeline unit toggle. Fixed width so switching SEC/FRAMES doesn't shuffle
+   the controls to its right. */
+.lib-btn--unit {
+    min-width: 5.2rem;
+    font-size: 0.64rem;
+}
+.lib-btn--unit:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+.lib-btn--unit:disabled:hover {
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+/* In-place option. Disabled when nothing selected travels — the label dims
+   rather than disappearing, so the option's existence stays discoverable. */
+.lib-check.is-disabled { opacity: 0.4; cursor: not-allowed; }
+.lib-check--sub { padding-left: 1.15rem; font-size: 0.66rem; }
+.lib-check--sub[hidden] { display: none; }
+
+.lib-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.lib-btn:disabled:hover { border-color: var(--border-color); color: var(--text-primary); }
+
+/* Axis lock group — reads as one control, not five loose buttons. */
+.lib-axes { display: inline-flex; align-items: center; gap: 0.25rem; }
+.lib-btn--axis {
+    min-width: 2rem;
+    padding: 0.42rem 0.3rem;
+    font-size: 0.62rem;
+}
+
+/* Read-only echo of the viewport's axes. Deliberately not a control — one
+   source of truth, so preview and download cannot disagree. */
+.lib-dock__note {
+    display: block;
+    font-family: var(--font-heading);
+    font-size: 0.6rem;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+}
+.lib-dock__note[hidden] { display: none; }
+
+/* Axes echoed inside the In Place label — read-only, the viewport owns it. */
+.lib-axes-tag {
+    display: inline-block;
+    margin-left: 0.3rem;
+    padding: 0.05rem 0.28rem;
+    font-size: 0.56rem;
+    letter-spacing: 0.08em;
+    color: var(--primary-color);
+    border: 1px solid rgba(9, 197, 204, 0.35);
+    vertical-align: 1px;
+}
+.lib-axes-tag[hidden] { display: none; }
+
+/* ── Clip composer ─────────────────────────────────────────────────────────
+   Layer stack in the export dock. Drawn top-layer-first so the visual order
+   matches the last-wins rule — a stack rendered bottom-up would invert the
+   mental model the whole feature depends on. See CLIP_COMPOSER_SPEC.md §3. */
+
+.lib-comp {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.lib-comp__head {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.lib-comp__title {
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted, #8b98a8);
+    margin-right: auto;
+}
+
+.lib-comp__hint {
+    margin: 0;
+    font-size: 0.62rem;
+    line-height: 1.45;
+    color: var(--text-muted, #8b98a8);
+}
+
+.lib-comp__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.lib-comp__layer {
+    border: 1px solid var(--border-color, #253040);
+    border-radius: 4px;
+    padding: 0.4rem 0.45rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+/* The base is visually settled rather than interactive — it has no regions to
+   choose, and dimming it stops people hunting for controls that aren't there. */
+.lib-comp__layer.is-base {
+    border-style: dashed;
+    opacity: 0.85;
+}
+
+.lib-comp__row {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.lib-comp__name {
+    font-size: 0.7rem;
+    color: var(--text-color, #dbe4ee);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lib-comp__tag {
+    font-size: 0.55rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted, #8b98a8);
+    margin-right: auto;
+}
+
+.lib-comp__btns { display: flex; gap: 0.15rem; flex-shrink: 0; }
+
+.lib-btn--icon {
+    padding: 0.12rem 0.32rem;
+    font-size: 0.66rem;
+    line-height: 1.2;
+}
+.lib-btn--icon:disabled { opacity: 0.3; cursor: default; }
+
+.lib-comp__note {
+    margin: 0;
+    font-size: 0.58rem;
+    line-height: 1.4;
+    color: var(--text-muted, #8b98a8);
+}
+
+.lib-comp__chips { display: flex; flex-wrap: wrap; gap: 0.2rem; }
+
+.lib-comp__presets { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+
+.lib-comp__preset {
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    font-size: 0.56rem;
+    color: var(--text-muted, #8b98a8);
+    text-decoration: underline dotted;
+    cursor: pointer;
+}
+.lib-comp__preset:hover { color: var(--primary-color); }
+
+/* ── A track's strips, in the Compose panel ────────────────────────────────
+   Listed under the track when it holds more than one, in time order, each
+   with its frames and its own remove. */
+.lib-comp__strips {
+    list-style: none;
+    margin: 0.3rem 0 0.2rem;
+    padding: 0 0 0 0.6rem;
+    border-left: 2px solid rgba(9, 197, 204, 0.35);
+}
+.lib-comp__strip {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.62rem;
+    color: var(--text-secondary);
+    min-height: 1.3rem;
+}
+.lib-comp__strip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lib-comp__strip-at {
+    margin-left: auto;
+    font-family: var(--font-heading);
+    font-size: 0.58rem;
+    color: var(--text-muted);
+}
+.lib-comp__strip-mirror { min-width: 1.4rem; padding: 0 0.2rem; font-size: 0.7rem; }
+.lib-comp__strip-mirror.is-on { color: var(--primary-color); border-color: var(--primary-color); }
+.lib-comp__strip-speed {
+    width: 2.9rem;
+    font: inherit;
+    font-size: 0.6rem;
+    padding: 0.1rem 0.2rem;
+    color: var(--text-color, #dbe4ee);
+    background: var(--panel-bg, #0e141c);
+    border: 1px solid var(--border-color, #253040);
+    border-radius: 3px;
+}
+.lib-comp__strip-x { font-size: 0.6rem; color: var(--text-muted); margin-left: -0.25rem; }
+.lib-comp__strip-repeat {
+    min-width: 2.2rem;
+    padding: 0.05rem 0.25rem;
+    font-size: 0.55rem;
+    text-transform: lowercase;
+    letter-spacing: 0;
+}
+.lib-comp__strip-repeat.is-on { color: var(--primary-color); border-color: var(--primary-color); }
+
+.lib-comp__addstrip {
+    display: block;
+    margin: 0.3rem 0 0.1rem;
+    padding: 0.2rem 0.45rem;
+    background: none;
+    border: 1px dashed rgba(9, 197, 204, 0.45);
+    border-radius: 3px;
+    color: var(--primary-color);
+    font-size: 0.6rem;
+    cursor: pointer;
+}
+.lib-comp__addstrip:hover { border-style: solid; }
+
+.lib-comp__report {
+    border-top: 1px dashed var(--border-color, #253040);
+    padding-top: 0.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.lib-comp__dur {
+    font-size: 0.66rem;
+    color: var(--text-color, #dbe4ee);
+    margin-bottom: 0.1rem;
+}
+
+.lib-comp__tile {
+    display: flex;
+    gap: 0.35rem;
+    font-size: 0.57rem;
+    color: var(--text-muted, #8b98a8);
+    align-items: baseline;
+}
+
+.lib-comp__tile-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 8rem;
+}
+
+.lib-comp__tile-note { margin-left: auto; flex-shrink: 0; }
+
+/* A layer that doesn't divide evenly pops once per cycle. Warn in place and
+   name the durations that would work — silently shipping it is the failure
+   this whole readout exists to prevent. */
+.lib-comp__tile.is-warn { color: #e0a03a; }
+.lib-comp__tile-fix {
+    flex-basis: 100%;
+    text-align: right;
+    font-size: 0.54rem;
+    opacity: 0.85;
+}
+
+/* ── Composite length ──────────────────────────────────────────────────────
+   The lengths sit under the per-layer lines because they are the answer to
+   them: a layer that is cut, or that does not divide, is fixed by choosing a
+   different length here. Each button carries what it costs — "every cycle
+   whole" can be twenty seconds — so the choice is made with the number in
+   view rather than discovered in an engine. */
+
+.lib-comp__len {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem;
+    margin-top: 0.35rem;
+    padding-top: 0.35rem;
+    border-top: 1px dashed var(--border-color, #253040);
+}
+
+.lib-comp__len-label {
+    font-size: 0.57rem;
+    color: var(--text-muted, #8b98a8);
+    margin-right: 0.1rem;
+}
+
+.lib-comp__len .lib-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1.15;
+    padding: 0.2rem 0.35rem;
+}
+
+.lib-comp__len-note {
+    font-size: 0.5rem;
+    opacity: 0.7;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.lib-comp__len-input {
+    width: 4.2rem;
+    margin-left: auto;
+    font: inherit;
+    font-size: 0.57rem;
+    padding: 0.2rem 0.3rem;
+    color: var(--text-color, #dbe4ee);
+    background: var(--panel-bg, #0e141c);
+    border: 1px solid var(--border-color, #253040);
+    border-radius: 3px;
+}
+
+/* ── Strips: the full-width sequencer ──────────────────────────────────────
+   A second row of the page grid, spanning every column, the way Unreal docks
+   its Sequencer under the whole editor rather than under one viewport. The
+   first row is minmax(0, 1fr), so opening it shrinks the stage, grid and
+   panels together instead of pushing anything off the bottom. */
+
+/* Wide screens only. Written later in the file than the ≤900px layout, so
+   unscoped it would override that layout's own rows on every phone. */
+@media (min-width: 901px) {
+    .lib { grid-template-rows: minmax(0, 1fr) auto; }
+}
+
+.lib-seq {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: var(--bg-medium);
+    border-top: 1px solid var(--border-color);
+    position: relative;
+}
+.lib-seq[hidden] { display: none; }
+
+/* While it is open it owns play, scrub and time. The rest of the transport —
+   view toggles, speed, loop — stays where it was. */
+body.is-strips #lib-playpause,
+body.is-strips #lib-scrub,
+body.is-strips #lib-time,
+body.is-strips #lib-unit { display: none; }
+body.is-strips #lib-strips { border-color: var(--primary-color); color: var(--primary-color); }
+/* Hidden until it is wired — .lib-btn's own display would otherwise win. */
+#lib-strips[hidden] { display: none; }
+
+.lib-btn--undo { min-width: 2rem; padding-left: 0.4rem; padding-right: 0.4rem; font-size: 0.9rem; }
+.lib-btn--undo[disabled] { opacity: 0.35; cursor: default; }
+
+/* Share lights up while the screen has edits no short link holds yet — the
+   same amber dot the tool rail uses for "edited". */
+.lib-btn--share { position: relative; }
+.lib-btn--share.is-due { border-color: var(--primary-color); color: var(--primary-color); }
+.lib-btn--share.is-due::after {
+    content: '';
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #e0a03a;
+    box-shadow: 0 0 0 2px var(--bg-medium);
+}
+
+/* The short link, by the button that made it. */
+.lib-sharepop {
+    position: fixed;
+    z-index: 70;
+    width: min(26rem, calc(100vw - 16px));
+    padding: 0.6rem 0.7rem;
+    font-size: 0.74rem;
+    color: var(--text-primary, #dbe4ee);
+    background: #10161e;
+    border: 1px solid var(--primary-color);
+    border-radius: 4px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+}
+.lib-sharepop.is-error { border-color: #d25c5c; }
+.lib-sharepop p { margin: 0.45rem 0 0; line-height: 1.4; }
+.lib-sharepop.is-error p:first-child { margin-top: 0; }
+.lib-sharepop__url {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.35rem 0.45rem;
+    font: inherit;
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    color: inherit;
+    background: #0a0f15;
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+}
+.lib-sharepop__note { color: #e3b35c; }
+
+.lib-seq__grip {
+    position: absolute;
+    top: -3px; left: 0; right: 0;
+    height: 6px;
+    cursor: ns-resize;
+    z-index: 6;
+}
+.lib-seq__grip:hover { background: var(--primary-color); opacity: 0.5; }
+
+.lib-seq__bar {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.4rem 0.8rem;
+    border-bottom: 1px solid var(--border-color);
+    flex: 0 0 auto;
+}
+.lib-seq__time {
+    font-family: var(--font-heading);
+    font-size: 0.72rem;
+    color: var(--text-primary);
+    min-width: 7.5rem;
+}
+.lib-seq__title {
+    font-family: var(--font-heading);
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--primary-color);
+}
+.lib-seq__bar { flex-wrap: wrap; }
+
+/* The page's transport, borrowed while the dock is open: same buttons, none of
+   its own chrome, one row where there is room for one. */
+.lib-seq__slot .lib-transport {
+    padding: 0;
+    border: 0;
+    background: none;
+    gap: 0.45rem;
+}
+.lib-seq__spacer { flex: 1 1 auto; }
+
+.lib-seq__scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    position: relative;
+}
+.lib-seq__content { position: relative; min-height: 100%; }
+
+.lib-seq__row {
+    display: flex;
+    /* Tall enough to GRAB. At 34px the strips were 26px and their fade grips
+       8px, which is a target you can see but not reliably hit. */
+    height: 48px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.lib-seq__row--ruler {
+    height: 22px;
+    position: sticky;
+    top: 0;
+    z-index: 4;
+    background: var(--bg-medium);
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* The name column stays put while the lanes scroll under it. */
+.lib-seq__head {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    flex: 0 0 168px;
+    width: 168px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 0.6rem;
+    background: var(--bg-light);
+    border-right: 1px solid var(--border-color);
+    overflow: hidden;
+}
+.lib-seq__name {
+    font-size: 0.74rem;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.lib-seq__sub { font-size: 0.6rem; color: var(--text-muted); white-space: nowrap; }
+
+.lib-seq__lane { position: relative; flex: 0 0 auto; }
+.lib-seq__lane--ruler { cursor: ew-resize; }
+.lib-seq__tick {
+    position: absolute;
+    top: 3px;
+    padding-left: 3px;
+    border-left: 1px solid var(--border-color);
+    font-family: var(--font-heading);
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    line-height: 16px;
+}
+
+.lib-seq__strip {
+    position: absolute;
+    top: 5px;
+    bottom: 5px;
+    display: flex;
+    align-items: center;
+    padding: 0 0.45rem;
+    border-radius: 3px;
+    overflow: hidden;
+    white-space: nowrap;
+    font-size: 0.66rem;
+}
+.lib-seq__label { position: relative; z-index: 1; overflow: hidden; text-overflow: ellipsis; }
+
+.lib-seq__strip.is-clip {
+    background: rgba(9, 197, 204, 0.18);
+    border: 1px solid rgba(9, 197, 204, 0.7);
+    color: var(--text-primary);
+}
+/* Repeats and holds are the strip's own consequences, drawn INSIDE it as
+   markers — a strip is one block from where it starts to where it ends, the
+   way a clip is in any sequencer, and the thing a layer list could never show
+   is where inside that block it tiles and where it simply stops moving.
+   pointer-events: none, or the markers would sit over the strip's own tail and
+   swallow the grab on its right edge. */
+.lib-seq__strip.is-repeat,
+.lib-seq__strip.is-hold {
+    pointer-events: none;
+    border: 0;
+    border-left: 1px dashed rgba(9, 197, 204, 0.55);
+    border-radius: 0;
+    background: transparent;
+    color: var(--text-muted);
+}
+.lib-seq__strip.is-hold {
+    background: repeating-linear-gradient(135deg,
+        rgba(0, 0, 0, 0.22) 0 6px, transparent 6px 12px);
+}
+/* A base held outside its span — before it starts or after it ends — is not
+   part of the strip, so it gets its own quieter look. */
+.lib-seq__strip.is-hold-out {
+    pointer-events: none;
+    background: repeating-linear-gradient(135deg,
+        rgba(255, 255, 255, 0.04) 0 6px, transparent 6px 12px);
+    border: 1px dashed var(--border-color);
+    color: var(--text-muted);
+}
+.lib-seq__lane.is-dragging .is-repeat,
+.lib-seq__lane.is-dragging .is-hold,
+.lib-seq__lane.is-dragging .is-hold-out { opacity: 0; }
+
+/* ── editing ─────────────────────────────────────────────────────────── */
+.lib-seq__strip.is-editable { cursor: grab; }
+.lib-seq__strip.is-dragging { cursor: grabbing; z-index: 3; outline: 1px solid var(--primary-color); }
+.lib-seq__strip.is-selected { border-color: #fff; box-shadow: inset 0 0 0 1px #fff; }
+.lib-seq__edge {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 10px;
+    cursor: ew-resize;
+    z-index: 2;
+}
+.lib-seq__edge--l { left: 0; }
+.lib-seq__edge--r { right: 0; }
+.lib-seq__strip.is-editable:hover .lib-seq__edge { background: rgba(255, 255, 255, 0.18); }
+/* Fade grips: small squares on the top corners, like Unreal's ease handles,
+   sitting where each fade ends. Above the trim edges so the corner fades and
+   the rest of the edge trims. */
+.lib-seq__fade {
+    position: absolute;
+    top: 0;
+    width: 16px;
+    height: 16px;
+    margin-left: -1px;
+    background: rgba(255, 255, 255, 0.85);
+    cursor: ew-resize;
+    z-index: 4;
+    /* Faint at rest rather than invisible: a control that only appears on
+       hover is one nobody knows to hover for. */
+    opacity: 0.35;
+    transition: opacity 0.12s;
+}
+.lib-seq__fade--in { clip-path: polygon(0 0, 100% 0, 0 100%); }
+.lib-seq__fade--out { clip-path: polygon(0 0, 100% 0, 100% 100%); margin-left: 0; margin-right: -1px; }
+.lib-seq__strip.is-editable:hover .lib-seq__fade,
+.lib-seq__strip.is-selected .lib-seq__fade,
+.lib-seq__strip.is-dragging .lib-seq__fade { opacity: 1; }
+
+/* ── dropping a clip from the grid ─────────────────────────────────────────
+   The label under the pointer, the lane it would land in, and a ghost of the
+   strip at the frame and length it would take. */
+.lib-dragghost {
+    position: fixed;
+    z-index: 100;
+    padding: 0.25rem 0.55rem;
+    font-size: 0.72rem;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.85);
+    border: 1px dashed var(--text-muted, #8b98a8);
+    border-radius: 3px;
+    pointer-events: none;
+    white-space: nowrap;
+}
+.lib-dragghost.is-over { border-color: var(--primary-color); border-style: solid; }
+body.is-dragging-clip, body.is-dragging-clip * { cursor: grabbing !important; user-select: none; }
+.lib-seq__row.is-drop .lib-seq__lane { background: rgba(9, 197, 204, 0.06); }
+.lib-seq__row.is-drop .lib-seq__head { box-shadow: inset 3px 0 0 var(--primary-color); }
+.lib-seq__row--new .lib-seq__head .lib-seq__name { color: var(--primary-color); }
+.lib-seq__strip.is-dropghost {
+    background: rgba(9, 197, 204, 0.12);
+    border: 1px dashed var(--primary-color);
+    color: var(--primary-color);
+    pointer-events: none;
+    z-index: 4;
+}
+
+/* ── a strip's own settings ────────────────────────────────────────────────
+   The ⋯ button shows on a hovered or selected strip, bottom right — clear of
+   the fade grip above it and the trim edge beside it. */
+.lib-seq__more {
+    position: absolute;
+    right: 12px;
+    bottom: 3px;
+    z-index: 3;
+    display: none;
+    padding: 0 0.3rem;
+    font-size: 0.8rem;
+    line-height: 1.1;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 3px;
+    cursor: pointer;
+}
+.lib-seq__strip.is-editable:hover .lib-seq__more,
+.lib-seq__strip.is-selected .lib-seq__more { display: block; }
+.lib-seq__strip.is-dragging .lib-seq__more { display: none; }
+.lib-seq__more:hover { border-color: var(--primary-color); color: var(--primary-color); }
+
+.lib-seq__menu {
+    position: fixed;
+    z-index: 60;
+    min-width: 18rem;
+    max-width: calc(100vw - 16px);
+    padding: 0.55rem 0.65rem 0.6rem;
+    font-size: 0.72rem;
+    color: var(--text-primary, #dbe4ee);
+    background: #10161e;
+    border: 1px solid var(--primary-color);
+    border-radius: 0;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+}
+/* A key's menu: Blender's interpolation choices, a row each, wrapping inside. */
+.lib-seq__menu--key { width: 27rem; }
+/* The graph's menus (right-click, T, V, I, Shift+S, Ctrl+M): the same rows; a long one scrolls inside. */
+.lib-seq__menu--graph { width: 30rem; max-height: calc(100vh - 16px); overflow-y: auto; }
+.lib-seq__menu-opt:disabled { opacity: 0.4; cursor: default; }
+.lib-seq__menu-title {
+    margin-bottom: 0.45rem;
+    font-family: var(--font-heading);
+    font-size: 0.78rem;
+    color: var(--primary-color);
+}
+.lib-seq__menu-row {
+    display: grid;
+    grid-template-columns: 5.6rem 1fr;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.25rem 0;
+}
+.lib-seq__menu-label {
+    font-size: 0.62rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.lib-seq__menu-group { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem; }
+.lib-seq__menu-opt { padding: 0.1rem 0.4rem; font-size: 0.62rem; text-transform: none; letter-spacing: 0; }
+.lib-seq__menu-opt.is-on { color: var(--primary-color); border-color: var(--primary-color); }
+.lib-seq__menu-speed {
+    width: 3.4rem;
+    font: inherit;
+    font-size: 0.66rem;
+    padding: 0.1rem 0.25rem;
+    color: var(--text-primary, #dbe4ee);
+    background: var(--panel-bg, #0e141c);
+    border: 1px solid var(--border-color, #253040);
+    border-radius: 3px;
+}
+.lib-seq__menu-x { color: var(--text-muted); margin-left: -0.15rem; }
+.lib-seq__menu-num {
+    width: 3.2rem;
+    font: inherit;
+    font-size: 0.66rem;
+    padding: 0.1rem 0.25rem;
+    color: var(--text-primary, #dbe4ee);
+    background: var(--panel-bg, #0e141c);
+    border: 1px solid var(--border-color, #253040);
+    border-radius: 3px;
+}
+.lib-seq__menu-num:focus { border-color: var(--primary-color); outline: none; }
+.lib-seq__menu-sub { font-size: 0.6rem; color: var(--text-muted); }
+.lib-seq__menu-ok { font-size: 0.62rem; color: #7bd88f; }
+.lib-seq__menu-fixed {
+    padding: 0.1rem 0.35rem;
+    font-size: 0.62rem;
+    color: #ffd24a;
+    border: 1px dashed rgba(255, 210, 74, 0.6);
+    border-radius: 3px;
+}
+.lib-seq__menu-note {
+    margin: 0.15rem 0 0 6rem;
+    font-size: 0.6rem;
+    line-height: 1.35;
+    color: var(--text-muted);
+}
+
+/* ── snapping and crossfades ───────────────────────────────────────────────
+   The snap line runs the full height of the lanes at the edge a strip landed
+   on. A crossfade is an X over the overlap — out-going and in-coming — and is
+   not a control: it passes the pointer through to the strips under it. */
+.lib-seq__snapline {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 0;
+    border-left: 1px dashed #ffd24a;
+    z-index: 6;
+    pointer-events: none;
+}
+.lib-seq__xfade {
+    position: absolute;
+    top: 5px; bottom: 5px;
+    z-index: 3;
+    pointer-events: none;
+    background:
+        linear-gradient(to top right, transparent calc(50% - 1px), rgba(255, 255, 255, 0.7) 50%, transparent calc(50% + 1px)),
+        linear-gradient(to bottom right, transparent calc(50% - 1px), rgba(255, 255, 255, 0.7) 50%, transparent calc(50% + 1px)),
+        rgba(255, 210, 74, 0.16);
+    border-left: 1px solid rgba(255, 210, 74, 0.8);
+    border-right: 1px solid rgba(255, 210, 74, 0.8);
+}
+.lib-seq__xfade.is-live { background-color: rgba(255, 210, 74, 0.28); }
+.lib-seq__xfade-label {
+    position: absolute;
+    left: 50%;
+    bottom: 1px;
+    transform: translateX(-50%);
+    padding: 0 3px;
+    font-size: 0.58rem;
+    color: #ffd24a;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 2px;
+    white-space: nowrap;
+}
+
+/* ── preview, range, clear ─────────────────────────────────────────────────
+   The banner says what plays when it is not the sequence. The range is Auto
+   or Manual, with start and end in the ruler's frames. */
+.lib-seq__preview {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.66rem;
+    color: #ffd24a;
+}
+.lib-seq__preview[hidden], .lib-seq__range[hidden] { display: none; }
+.lib-seq__range {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.66rem;
+    color: var(--text-muted);
+}
+.lib-seq__range-label { text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.6rem; }
+.lib-seq__range-sub { font-size: 0.6rem; }
+.lib-seq__range-opt.is-on { color: var(--primary-color); border-color: var(--primary-color); }
+.lib-seq__range-num {
+    width: 3.4rem;
+    font: inherit;
+    font-size: 0.66rem;
+    padding: 0.1rem 0.25rem;
+    color: var(--text-primary, #dbe4ee);
+    background: var(--panel-bg, #0e141c);
+    border: 1px solid var(--border-color, #253040);
+    border-radius: 3px;
+}
+.lib-seq__range-num:focus { border-color: var(--primary-color); outline: none; }
+.lib-seq__range-mark { padding: 0 0.3rem; }
+.lib-seq__clear { margin-left: 0.4rem; }
+.lib-seq__before {
+    position: absolute;
+    top: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.28);
+    border-right: 1px solid rgba(255, 255, 255, 0.18);
+    pointer-events: none;
+    z-index: 1;
+}
+.lib-seq__playhead[hidden] { display: none; }
+.lib-seq__before[hidden] { display: none; }
+
+/* The range's ends on the ruler: [ and ]. Dim while the range is automatic,
+   the accent colour once it is set by hand. */
+.lib-seq__rhandle {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 10px;
+    z-index: 3;
+    cursor: ew-resize;
+    color: rgba(255, 255, 255, 0.45);
+}
+.lib-seq__rhandle::before {
+    content: '';
+    position: absolute;
+    top: 2px; bottom: 2px;
+    width: 5px;
+    border: 2px solid currentColor;
+}
+.lib-seq__rhandle--start::before { left: 0; border-right: 0; }
+.lib-seq__rhandle--end { transform: translateX(-100%); }
+.lib-seq__rhandle--end::before { right: 0; border-left: 0; }
+.lib-seq__rhandle.is-manual { color: var(--primary-color); }
+.lib-seq__rhandle:hover, .lib-seq__rhandle.is-dragging { color: #fff; }
+.lib-seq__lane.is-empty { outline: 1px dashed rgba(9, 197, 204, 0.35); outline-offset: -4px; }
+/* The permanent "+ New layer" row: slimmer than a lane with strips in it. */
+.lib-seq__row--new { height: 30px; }
+.lib-seq__row--new .lib-seq__head .lib-seq__sub { display: none; }
+.lib-seq__row--new .lib-seq__lane.is-empty { outline-color: rgba(9, 197, 204, 0.22); }
+.lib-seq__row--new.is-drop .lib-seq__lane.is-empty { outline-color: var(--primary-color); }
+.lib-seq__empty-hint {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.66rem;
+    color: var(--text-muted);
+    pointer-events: none;
+}
+
+/* A word about what a key just did. */
+.lib-seq__toast {
+    font-size: 0.66rem;
+    color: #7bd88f;
+}
+.lib-seq__toast[hidden] { display: none; }
+/* The copy a Ctrl+drag carries; the original stays where it was. */
+.lib-seq__strip.is-copy { opacity: 0.75; outline: 1px dashed #fff; }
+
+/* ── a layer's head: name, mute, solo, weight, regions ──────────────────── */
+.lib-seq__headctl { display: flex; align-items: center; gap: 3px; margin-top: 3px; }
+.lib-seq__hbtn {
+    min-width: 18px;
+    height: 16px;
+    padding: 0 3px;
+    font: inherit;
+    font-size: 0.58rem;
+    line-height: 14px;
+    color: var(--text-muted);
+    background: var(--panel-bg, #0e141c);
+    border: 1px solid var(--border-color, #253040);
+    border-radius: 3px;
+    cursor: pointer;
+}
+.lib-seq__hbtn:hover { color: #fff; }
+.lib-seq__hbtn.is-on { color: #10161e; background: #ffd24a; border-color: #ffd24a; }
+.lib-seq__hreg { margin-left: auto; }
+.lib-seq__hweight { width: 58px; height: 12px; margin: 0 2px; accent-color: var(--primary-color); }
+.lib-seq__row--adjust .lib-seq__hweight { width: 52px; accent-color: #b07cff; }
+.lib-seq__row--ik .lib-seq__hweight { width: 52px; accent-color: #f0963c; }
+.lib-seq__hval { font-size: 0.56rem; color: var(--text-muted); min-width: 26px; text-align: right; }
+/* An Adjust control muted in Strips: kept, not applied. */
+.lib-adj__row.is-muted .lib-adj__slider, .lib-adj__row.is-muted .lib-comp__pct { opacity: 0.4; }
+.lib-adj__row.is-muted .lib-adj__label { text-decoration: line-through; }
+.lib-seq__rename {
+    width: 100%;
+    font: inherit;
+    font-size: 0.72rem;
+    padding: 0 3px;
+    color: var(--text-primary, #dbe4ee);
+    background: var(--panel-bg, #0e141c);
+    border: 1px solid var(--primary-color);
+    border-radius: 3px;
+}
+.lib-seq__row.is-muted .lib-seq__lane { opacity: 0.38; }
+.lib-seq__row.is-muted .lib-seq__name { text-decoration: line-through; color: var(--text-muted); }
+.lib-seq__row.is-solo .lib-seq__head { box-shadow: inset 3px 0 0 #ffd24a; }
+/* Box select across the lanes. */
+.lib-seq__marquee {
+    position: absolute;
+    z-index: 8;
+    border: 1px dashed #fff;
+    background: rgba(255, 255, 255, 0.06);
+    pointer-events: none;
+}
+.lib-seq__strip.is-marquee { outline: 1px solid #fff; }
+
+.lib-seq__readout {
+    position: absolute;
+    z-index: 7;
+    padding: 2px 6px;
+    font-family: var(--font-heading);
+    font-size: 0.62rem;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.85);
+    border: 1px solid var(--primary-color);
+    border-radius: 3px;
+    white-space: nowrap;
+    pointer-events: none;
+}
+/* A layer longer than the timeline: the part that is not in the file. */
+.lib-seq__strip.is-cut { border-right: 2px solid #e0a03a; }
+
+.lib-seq__strip.is-adjust {
+    background: rgba(125, 0, 147, 0.28);
+    border: 1px solid rgba(186, 104, 200, 0.75);
+    color: var(--text-primary);
+}
+/* An IK control's window — the same band, in the gizmo's orange. */
+.lib-seq__strip.is-ik {
+    background: rgba(200, 110, 20, 0.26);
+    border: 1px solid rgba(240, 150, 60, 0.8);
+    color: var(--text-primary);
+}
+.lib-seq__ramp {
+    position: absolute;
+    top: 0; bottom: 0;
+    background: rgba(255, 255, 255, 0.08);
+}
+.lib-seq__ramp--in { left: 0; clip-path: polygon(0 100%, 100% 0, 100% 100%); }
+.lib-seq__ramp--out { right: 0; clip-path: polygon(0 0, 100% 100%, 0 100%); }
+
+.lib-seq__beyond {
+    position: absolute;
+    top: 0; bottom: 0; right: 0;
+    background: rgba(0, 0, 0, 0.28);
+    border-left: 1px solid rgba(255, 255, 255, 0.18);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.lib-seq__playhead {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 2px;
+    margin-left: -1px;
+    background: #ff5a5a;
+    z-index: 5;
+    pointer-events: none;
+}
+
+.lib-seq__empty {
+    padding: 1rem 0 0 calc(168px + 1rem);
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+
+/* ── A slider's time range ─────────────────────────────────────────────────
+   Folded away under its slider, so a panel nobody has opened reads exactly as
+   it did before ranges existed. The mark on a windowed row is what makes a
+   setting you cannot see from a setting you forgot about. */
+
+.lib-adj__more {
+    background: none;
+    border: none;
+    color: var(--text-muted, #8b98a8);
+    cursor: pointer;
+    font-size: 0.7rem;
+    line-height: 1;
+    padding: 0 0.15rem;
+}
+.lib-adj__more:hover { color: var(--primary-color); }
+
+/* Which frames a changed slider applies over, under the slider itself. */
+.lib-adj__span {
+    align-self: flex-start;
+    margin: -0.15rem 0 0.1rem calc(4.2rem + 0.35rem);
+    padding: 0.05rem 0.4rem;
+    font: inherit;
+    font-size: 0.55rem;
+    color: var(--text-muted, #8b98a8);
+    background: none;
+    border: 1px dashed var(--border-color, #253040);
+    border-radius: 3px;
+    cursor: pointer;
+}
+.lib-adj__span:hover { color: var(--primary-color); border-color: var(--primary-color); }
+.lib-adj__span.is-ranged { color: var(--primary-color); border: 1px solid var(--primary-color); }
+.lib-adj__span[hidden] { display: none; }
+.lib-adj__here { text-transform: none; letter-spacing: 0; }
+
+.lib-adj__row.is-ranged .lib-adj__label::after {
+    content: '';
+    display: inline-block;
+    width: 0.3rem;
+    height: 0.3rem;
+    margin-left: 0.25rem;
+    border-radius: 50%;
+    background: var(--primary-color);
+    vertical-align: middle;
+}
+
+.lib-adj__range {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.3rem;
+    margin: 0.1rem 0 0.45rem 0;
+    padding: 0.35rem 0.4rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-left: 2px solid var(--primary-color);
+}
+
+.lib-adj__range-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    font-size: 0.55rem;
+    color: var(--text-muted, #8b98a8);
+}
+
+.lib-adj__range-cell input {
+    width: 3rem;
+    font: inherit;
+    font-size: 0.6rem;
+    padding: 0.15rem 0.25rem;
+    color: var(--text-color, #dbe4ee);
+    background: var(--panel-bg, #0e141c);
+    border: 1px solid var(--border-color, #253040);
+    border-radius: 3px;
+}
+
+.lib-adj__range-note {
+    flex-basis: 100%;
+    font-size: 0.52rem;
+    color: var(--text-muted, #8b98a8);
+    opacity: 0.9;
+}
+
+/* ── LEFT COLUMN TEXT SIZE ─────────────────────────────────────────────────
+   The tools were authored at 0.46–0.7rem, which measures 7 to 11px — a
+   compose line came out at 10.24px on a 1920 screen. Readable on a laptop at
+   arm's length, too small on the 1440p monitor most people building game art
+   actually sit at.
+
+   `zoom`, not forty font-size overrides. The left column holds six tools with
+   their own rules for chips, sliders, checkboxes and notes; raising the type
+   one rule at a time grows the text and leaves every padding, control and gap
+   at the old scale, so the panel stops fitting itself. Zoom scales the whole
+   subtree — layout included — so the design is unchanged and simply larger.
+
+   The panel's width is in px and zoom multiplies it too, so the column takes
+   the space it grows by — which is why this steps with the screen instead of
+   being one number. A 1366 laptop cannot spare 100px from the viewport and a
+   1440p monitor does not notice it. Supported in Chrome, Safari and Firefox
+   126+; where it is not, the column renders exactly as it did before. */
+.lib-rail,
+.lib-toolpanel { zoom: 1.15; }
+
+/* Below the first step the column gives back what the zoom took: 215 x 1.15
+   is the 250px it always occupied, so a 1366 laptop keeps its stage and still
+   gets larger type — the text grows, the column does not. */
+@media (max-width: 1499px) {
+    .lib-toolpanel { width: 215px; }
+}
+
+@media (min-width: 1500px) {
+    .lib-rail,
+    .lib-toolpanel { zoom: 1.3; }
+}
+
+/* 1920 and up — the 1440p and 4K desks this was reported from. */
+@media (min-width: 1900px) {
+    .lib-rail,
+    .lib-toolpanel { zoom: 1.4; }
+}
+
+/* ── Credit line ───────────────────────────────────────────────────────────
+   Bottom-right of the stage, opposite the orbit hint. Not in the drawer: that
+   panel collapses, and a credit you can hide is not doing the job a credit is
+   for. CC0 requires none of this — it is courtesy. */
+
+.lib-credit {
+    position: absolute;
+    right: 1rem;
+    bottom: 1rem;
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: 0.62rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    /* The stage is drag-to-orbit. This line must not swallow a drag that starts
+       on it, so only the link itself accepts the pointer. */
+    pointer-events: none;
+}
+
+.lib-credit a {
+    color: var(--text-secondary, #b8c4d0);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    pointer-events: auto;
+}
+.lib-credit a:hover {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+}
+
+.lib-credit span { opacity: 0.6; }
+/* A maker with no page of their own to link to: the name as bright as a linked one. */
+.lib-credit b { font-weight: inherit; color: var(--text-secondary, #b8c4d0); }
+
+/* ── Composer weights ──────────────────────────────────────────────────────
+   Layer master slider, and a nested per-region list behind a twisty. The list
+   nests rather than sitting inline because five sliders across four layers is
+   twenty controls in a 250px column. See COMPOSER_WEIGHTS_SPEC.md §7. */
+
+.lib-comp__twisty {
+    background: none;
+    border: none;
+    padding: 0 0.15rem 0 0;
+    margin: 0;
+    font: inherit;
+    font-size: 0.6rem;
+    line-height: 1;
+    color: var(--text-muted, #8b98a8);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.lib-comp__twisty:hover { color: var(--primary-color); }
+
+.lib-comp__master,
+.lib-comp__region {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.58rem;
+    color: var(--text-muted, #8b98a8);
+}
+
+.lib-comp__master {
+    padding-bottom: 0.1rem;
+    border-bottom: 1px dashed var(--border-color, #253040);
+    margin-bottom: 0.1rem;
+}
+
+.lib-comp__regions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.12rem;
+    padding-left: 0.1rem;
+}
+
+.lib-comp__region.is-on { color: var(--text-color, #dbe4ee); }
+
+.lib-comp__tick {
+    width: 0.95rem;
+    height: 0.95rem;
+    flex-shrink: 0;
+    padding: 0;
+    font: inherit;
+    font-size: 0.5rem;
+    line-height: 1;
+    background: none;
+    border: 1px solid var(--border-color, #253040);
+    border-radius: 2px;
+    color: var(--primary-color);
+    cursor: pointer;
+}
+.lib-comp__region.is-on .lib-comp__tick { border-color: var(--primary-color); }
+
+.lib-comp__region-name {
+    min-width: 3.1rem;
+    flex-shrink: 0;
+}
+
+/* Percent readout is tabular and fixed-width so the slider does not shift
+   sideways as the number goes 9% -> 100%. */
+.lib-comp__pct {
+    min-width: 2.1rem;
+    text-align: right;
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+.lib-comp__slider {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 2px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--border-color, #253040);
+    border-radius: 2px;
+    cursor: pointer;
+}
+.lib-comp__slider:disabled { opacity: 0.35; cursor: default; }
+
+.lib-comp__slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    cursor: pointer;
+}
+.lib-comp__slider::-moz-range-thumb {
+    width: 9px;
+    height: 9px;
+    border: none;
+    border-radius: 50%;
+    background: var(--primary-color);
+    cursor: pointer;
+}
+.lib-comp__slider:disabled::-webkit-slider-thumb { background: var(--text-muted, #8b98a8); }
+.lib-comp__slider:disabled::-moz-range-thumb { background: var(--text-muted, #8b98a8); }
+
+/* ── Tool panes ────────────────────────────────────────────────────────────
+   Several tools can be open at once, stacked in markup order. `.is-first` is
+   set by tool-rail.js on the topmost VISIBLE pane — :first-child would still
+   match a hidden sibling and leave a separator above nothing. */
+
+.lib-toolpane {
+    padding-top: 0.7rem;
+    margin-top: 0.7rem;
+    border-top: 1px solid var(--border-color, #253040);
+}
+.lib-toolpane.is-first {
+    padding-top: 0;
+    margin-top: 0;
+    border-top: none;
+}
+
+/* ── Adjust panel ──────────────────────────────────────────────────────────
+   Five named sliders. Reuses the composer's slider styling so the two panes
+   read as one toolset rather than two bolted together. */
+
+.lib-adj {
+    display: flex;
+    flex-direction: column;
+    gap: 0.28rem;
+}
+
+.lib-adj__row {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.6rem;
+    color: var(--text-muted, #8b98a8);
+}
+
+.lib-adj__label {
+    min-width: 4.2rem;
+    flex-shrink: 0;
+}
+
+/* Neutral tick. Drawn from a custom property because neutral is NOT the middle
+   for every control — Overdrive sits at 100% of a 50–175 range — so a hardcoded
+   50% would quietly lie the moment that lands. */
+.lib-adj__slider {
+    background-image: linear-gradient(
+        to right,
+        transparent calc(var(--neutral, 50%) - 1px),
+        var(--text-muted, #8b98a8) calc(var(--neutral, 50%) - 1px),
+        var(--text-muted, #8b98a8) calc(var(--neutral, 50%) + 1px),
+        transparent calc(var(--neutral, 50%) + 1px)
+    );
+    background-repeat: no-repeat;
+    background-size: 100% 6px;
+    background-position: center;
+}
+
+.lib-adj__warn {
+    margin: 0.5rem 0 0;
+    font-size: 0.55rem;
+    line-height: 1.45;
+    color: #e0a03a;
+}
+.lib-adj__warn[hidden] { display: none; }
+
+/* The layer list is the only part of the column that grows without bound —
+   each layer adds a row, a master slider, chips or five region sliders, and the
+   presets. Three expanded layers is enough to push every pane below it off the
+   bottom of the screen. Cap it and let it scroll inside itself, so Adjust stays
+   where the pipeline order says it is: directly under Compose. */
+.lib-comp__list {
+    max-height: 42vh;
+    overflow-y: auto;
+    /* Room for the scrollbar so it does not overlay the region sliders. */
+    padding-right: 0.15rem;
+}
+
+/* Same reasoning for the tiling report, which grows one line per layer. */
+.lib-comp__report {
+    max-height: 18vh;
+    overflow-y: auto;
+}
+
+/* Gain and time are different primitives from the pose offsets above, so they
+   get their own group rather than reading as five more ways to move a bone. */
+.lib-adj--split {
+    margin-top: 0.45rem;
+    padding-top: 0.45rem;
+    border-top: 1px dashed var(--border-color, #253040);
+}
+
+/* ── Props panel ───────────────────────────────────────────────────────────
+   A grid of props, each with L and R buttons. Two slots, not one: the rig has
+   a socket per hand, so a sword and a shield are holdable at once. */
+
+/* Two columns rather than three. The pane is 250px wide, so a 64px minimum
+   packed three across at 72px each — too small to read a name in, which is
+   most of what a card is for once the thumbnail is a silhouette. 96px gives
+   two columns at 110px. */
+.lib-props__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+    gap: 0.45rem;
+}
+
+.lib-prop {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.45rem 0.3rem;
+    border: 1px solid var(--border-color, #253040);
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.18);
+}
+.lib-prop.is-held { border-color: var(--primary-color); }
+
+/* Remove, on props someone added themselves. Positioned over the tile rather
+   than in the flow: the grid is dense and a fourth row of controls would push
+   the thumbnails down for every prop to serve the few that can be removed.
+   Hidden until the tile is hovered or focused, so it is not a row of crosses
+   inviting a mis-click. */
+.lib-prop { position: relative; }
+.lib-prop__rm {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    line-height: 14px;
+    border: 1px solid var(--border-color, #253040);
+    border-radius: 3px;
+    background: rgba(0, 0, 0, 0.65);
+    color: var(--text-muted, #9aa3a8);
+    font-size: 12px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.12s ease;
+}
+.lib-prop:hover .lib-prop__rm,
+.lib-prop__rm:focus-visible { opacity: 1; }
+.lib-prop__rm:hover { color: #e06c6c; border-color: #e06c6c; }
+
+/* Fixed box so a tile does not resize while its thumbnail is still rendering —
+   the grid would reflow under the pointer mid-click. */
+.lib-prop__thumb {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: contain;
+    display: block;
+}
+
+.lib-prop__name {
+    font-size: 0.68rem;
+    line-height: 1.2;
+    text-align: center;
+    color: var(--text-muted, #8b98a8);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+}
+
+.lib-prop__hands { display: flex; gap: 0.25rem; }
+.lib-prop__hands .lib-btn { padding: 0.12rem 0.5rem; font-size: 0.72rem; }
+.lib-prop__hands .lib-btn:disabled { opacity: 0.3; cursor: default; }
+
+/* Drop target feedback. On the pane, not the grid — an empty library has no
+   grid to drop onto, and that is exactly when you most want to add one. */
+.lib-comp.is-dropping {
+    outline: 1px dashed var(--primary-color);
+    outline-offset: 3px;
+}
+/* The stage takes a character or a prop (CHARACTER_SPEC R1b). */
+.lib-stage.is-dropping {
+    outline: 2px dashed var(--primary-color);
+    outline-offset: -6px;
+}
+.lib-dropask span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ── Presets ───────────────────────────────────────────────────────────────
+   A preset is a saved link — same fragment the address bar carries — so the
+   row offers both "open it" and "copy it". */
+
+.lib-presets {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.lib-preset {
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
+    border: 1px solid var(--border-color, #253040);
+    border-radius: 4px;
+    padding: 0.15rem 0.2rem;
+}
+
+/* The whole row is the open button, so the click target is the row rather than
+   a word inside it. */
+.lib-preset__open {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.05rem;
+    background: none;
+    border: none;
+    padding: 0.15rem 0.2rem;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+.lib-preset__open:hover .lib-preset__name { color: var(--primary-color); }
+
+.lib-preset__name {
+    font-size: 0.64rem;
+    color: var(--text-color, #dbe4ee);
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lib-preset__note {
+    font-size: 0.52rem;
+    color: var(--text-muted, #8b98a8);
+}
+
+/* ── Grip IK ───────────────────────────────────────────────────────────────
+   Inside the Props pane, because the only IK targets that exist are grip nodes
+   on the thing in the character's hand. Hidden entirely when no held prop
+   declares one — sliders that cannot affect anything are worse than absent. */
+
+.lib-ik {
+    margin-top: 0.5rem;
+    padding-top: 0.45rem;
+    border-top: 1px dashed var(--border-color, #253040);
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+.lib-ik[hidden] { display: none; }
+
+.lib-ik__title {
+    margin: 0;
+    font-size: 0.58rem;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-muted, #8b98a8);
+    font-weight: 400;
+}
+
+/* Side view — a border over the canvas, positioned by the player in px.
+   Drawn in CSS rather than WebGL: sharper, and it costs no draw call.
+   pointer-events off so it never steals a click from the orbit control. */
+.lib-camview {
+    position: absolute;
+    border: 1px solid var(--primary-color);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6);
+    pointer-events: none;
+    z-index: 4;
+}
+
+.lib-camview__tag {
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    padding: 0.1rem 0.3rem;
+    font-size: 0.5rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--bg-dark);
+    background: var(--primary-color);
+}
+
+/* Format row in the export dock.
+   Wraps rather than shrinking: three labelled dropdowns do not fit the panel's
+   width on one line, and squeezing them was what made the text unreadable. */
+.lib-dock__row--fmt {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.7rem;
+    /* flex-end, not center: with Manny / Quinn showing, the Skeleton line
+       stays level with Format rather than Format floating between the two. */
+    align-items: flex-end;
+}
+
+.lib-dock__fmt {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.68rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.lib-dock__fmt select {
+    background: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 0.72rem;
+    text-transform: none;
+    letter-spacing: 0;
+    padding: 0.2rem 0.35rem;
+    cursor: pointer;
+}
+
+.lib-dock__fmt select:hover { border-color: var(--primary-color); }
+
+/* Unreal's Manny / Quinn, stacked directly above the Skeleton picker. The
+   explicit display:none because .lib-dock__fmt's display:flex beats [hidden]. */
+.lib-dock__stack { display: flex; flex-direction: column; gap: 0.3rem; }
+.lib-dock__fmt.is-disabled { opacity: 0.45; }
+#lib-mannequin-row[hidden] { display: none; }
+
+/* A disabled option is a promise, not a dead end — say so rather than letting
+   it read as broken. */
+.lib-dock__fmt select option:disabled { color: var(--text-muted); font-style: italic; }
+
+/* Rig picker — one button per body, in the tool rail's first pane. */
+.lib-rigs { display: flex; gap: 0.2rem; flex-wrap: wrap; }
+.lib-rigs .lib-btn { padding: 0.1rem 0.35rem; font-size: 0.55rem; }
+.lib-rigs .lib-btn[disabled] { opacity: 0.5; cursor: progress; }
+
+/* ── Character (CHARACTER_SPEC R1) ─────────────────────────────────────── */
+.lib-chars { margin: 0.6rem 0 0; }
+.lib-chars__title { font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted, #8b98a8); margin-bottom: 0.25rem; }
+.lib-chars__row { display: flex; flex-wrap: wrap; gap: 0.25rem; align-items: center; }
+.lib-chars__row > .lib-btn--axis { padding: 0.1rem 0.4rem; font-size: 0.6rem; }
+.lib-char { display: inline-flex; align-items: center; gap: 0.1rem; border: 1px solid var(--border-color, #253040); border-radius: 3px; padding: 0 0.1rem 0 0; }
+.lib-char.is-on { border-color: #09c5cc; }
+.lib-char__name { font: inherit; font-size: 0.6rem; padding: 0.12rem 0.4rem; background: none; border: 0; color: var(--text-primary, #dbe4ee); cursor: pointer; max-width: 11rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lib-char.is-on .lib-char__name { color: #09c5cc; }
+.lib-char .lib-btn--icon { font-size: 0.55rem; padding: 0 0.2rem; }
+.lib-charcheck { position: relative; margin: 0.6rem 0 0; padding: 0.4rem 1.4rem 0.4rem 0.5rem; border: 1px solid var(--border-color, #253040); border-radius: 3px; font-size: 0.6rem; line-height: 1.45; }
+.lib-charcheck p { margin: 0 0 0.25rem; }
+.lib-charcheck ul { margin: 0.2rem 0 0; padding-left: 1rem; }
+.lib-charcheck__ok { color: #57e0a0; }
+.lib-charcheck__bad { color: #ff8a8a; }
+.lib-charcheck__errors li { color: #ff8a8a; }
+.lib-charcheck__warnings li { color: #ffd633; }
+.lib-charcheck__fixes li { color: var(--text-muted, #8b98a8); }
+.lib-charcheck__close { position: absolute; top: 0.2rem; right: 0.2rem; }
+.lib-charstore { margin-top: 0.6rem; }
+.lib-charguide { margin: 0.5rem 0 0; font-size: 0.6rem; line-height: 1.5; color: var(--text-secondary, #ccc); }
+.lib-charguide > summary { cursor: pointer; color: var(--text-muted, #8b98a8); }
+.lib-charguide ol { margin: 0.3rem 0; padding-left: 1.1rem; }
+.lib-charguide__links a { color: #09c5cc; }
+
+/* ── one control ─────────────────────────────────────────────────────
+   Five of these, always on screen. A control that is not solving collapses
+   to its row, so the idle panel is short and the dots still answer "what is
+   solving" without a click. */
+/* Backup row. Sits below the storage warning it answers, so "Save" reads as
+   the thing to do about what the line above just said. */
+.lib-import__backup {
+    margin-top: 0.35rem;
+    padding-top: 0.35rem;
+    border-top: 1px dashed var(--border-color);
+}
+.lib-import__backup .lib-btn[disabled] { opacity: 0.35; cursor: default; }
+
+/* A hint that is a warning. Used when the browser has refused to promise it
+   will keep someone's imported clips. */
+.lib-comp__hint.is-warn {
+    color: #e0a03a;
+    border-left: 2px solid #e0a03a;
+    padding-left: 0.4rem;
+}
+
+.lib-ik__ctl {
+    border: 1px solid var(--border-color);
+    background: var(--bg-dark);
+    margin-bottom: 0.28rem;
+}
+.lib-ik__ctl.is-sel { border-color: var(--primary-color); }
+.lib-ik__ctl.is-off .lib-ik__body { display: none; }
+
+.lib-ik__ctlrow {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.28rem 0.4rem;
+    cursor: pointer;
+    user-select: none;
+}
+.lib-ik__ctlrow:hover { background: var(--bg-light); }
+
+/* THE POWER DOT. Filled means solving. Separate from selection on purpose:
+   one button used to do both, which is most of what made this confusing. */
+.lib-ik__dot {
+    flex: none;
+    width: 0.5rem;
+    height: 0.5rem;
+    border: 1px solid #4a5763;
+    border-radius: 50%;
+    background: transparent;
+}
+.lib-ik__dot.is-on {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    box-shadow: 0 0 5px rgba(9, 197, 204, 0.6);
+}
+
+.lib-ik__nm { flex: 1; font-size: 0.68rem; letter-spacing: 0.03em; }
+.lib-ik__ctl.is-off .lib-ik__nm { color: var(--text-muted); }
+
+.lib-ik__moved {
+    font-size: 0.52rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--primary-color);
+}
+
+.lib-ik__body { padding: 0.1rem 0.4rem 0.4rem; }
+
+/* ── the fields ──────────────────────────────────────────────────────
+   Typed, not slider. A slider needs a range; the gizmo has none, so a pelvis
+   dragged into a squat pinned the old slider at its end and snapped back to
+   15 cm the moment it was touched. */
+.lib-ik__axes {
+    display: grid;
+    grid-template-columns: auto 1fr 1fr 1fr auto;
+    gap: 0.15rem;
+    align-items: center;
+    margin-top: 0.15rem;
+}
+.lib-ik__lb {
+    font-size: 0.5rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding-right: 0.1rem;
+}
+
+.lib-ik__f { position: relative; }
+.lib-ik__f input {
+    width: 100%;
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-family: var(--font-heading);
+    font-size: 0.6rem;
+    padding: 0.15rem 0.2rem 0.15rem 0.65rem;
+    text-align: right;
+    /* Says "drag me" before you find out by accident. */
+    cursor: ew-resize;
+}
+.lib-ik__f input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    background: #0d1418;
+    cursor: text;
+}
+.lib-ik__f b {
+    position: absolute;
+    left: 0.2rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.52rem;
+    font-weight: 700;
+    pointer-events: none;
+}
+/* The axis colours every DCC uses, so the mapping needs no learning. */
+.lib-ik__f--x b { color: #d9556b; }
+.lib-ik__f--y b { color: #6bd955; }
+.lib-ik__f--z b { color: #5590d9; }
+
+.lib-ik__axes--rot .lib-ik__f input { color: var(--text-secondary); }
+
+/* ── parent switch ───────────────────────────────────────────────────
+   Segmented, not a dropdown: there are exactly two spaces and the current one
+   should read without opening a menu. */
+.lib-ik__psw { display: flex; flex: none; border: 1px solid var(--border-color); }
+.lib-ik__pb {
+    background: transparent;
+    border: none;
+    border-left: 1px solid var(--border-color);
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 0.48rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 0.1rem 0.28rem;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.lib-ik__pb:first-child { border-left: none; }
+.lib-ik__pb:hover { color: var(--primary-color); }
+.lib-ik__pb.is-on { background: #1d2b30; color: var(--primary-color); }
+.lib-ik__pole .lib-ik__pb.is-on { background: #16281c; color: #4ec97a; }
+.lib-ik__pnm { flex: 1; }
+
+.lib-ik__zero {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.65rem;
+    padding: 0 0.15rem;
+    cursor: pointer;
+}
+.lib-ik__zero:hover { color: var(--primary-color); }
+
+/* ── the pole ────────────────────────────────────────────────────────
+   Under its limb, in the same green as its marker in the viewport. It used to
+   live behind a Limb/Pole toggle, which is why nobody knew it was there. */
+.lib-ik__pole {
+    margin-top: 0.3rem;
+    padding-top: 0.28rem;
+    border-top: 1px dashed var(--border-color);
+}
+.lib-ik__polehead {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.52rem;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: #4ec97a;
+    cursor: pointer;
+    margin-bottom: 0.1rem;
+}
+.lib-ik__pdot {
+    flex: none;
+    width: 0.38rem;
+    height: 0.38rem;
+    background: #4ec97a;
+    transform: rotate(45deg);
+    opacity: 0.4;
+}
+.lib-ik__pdot.is-on { opacity: 1; box-shadow: 0 0 5px rgba(78, 201, 122, 0.6); }
+.lib-ik__pole .lib-ik__lb { color: #4ec97a; }
+.lib-ik__pole .lib-ik__f input { border-color: #24402e; }
+
+.lib-ik__foot { display: flex; justify-content: flex-end; }
+
+/* Solving toggle on the left, gizmo mode on the right. */
+/* The FPS switch, under a prop's fields. */
+.lib-ik__follow {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0.35rem;
+    font-size: 0.58rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    user-select: none;
+}
+.lib-ik__follow input { accent-color: var(--primary-color); margin: 0; }
+
+/* A prop row loses its border when it lives inside a control box. */
+.lib-ik__ctl > .lib-ik__ctlrow { border: none; margin: 0; background: none; }
+
+/* Section heading inside the IK panel. */
+.lib-ik__seph {
+    margin: 0.7rem 0 0.3rem;
+    padding-top: 0.45rem;
+    border-top: 1px solid var(--border-color);
+    font-size: 0.52rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+/* One prop row: dot, name, the bone it drives. */
+.lib-ik__ctlrow {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.28rem 0.4rem;
+    cursor: pointer;
+    user-select: none;
+    border: 1px solid var(--border-color);
+    background: var(--bg-dark);
+    margin-bottom: 0.28rem;
+}
+.lib-ik__ctlrow:hover { background: var(--bg-light); }
+.lib-ik__ctlrow.is-sel { border-color: var(--primary-color); }
+
+.lib-ik__dot {
+    flex: none;
+    width: 0.5rem;
+    height: 0.5rem;
+    border: 1px solid #4a5763;
+    border-radius: 50%;
+    background: transparent;
+}
+.lib-ik__dot.is-on {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    box-shadow: 0 0 5px rgba(9, 197, 204, 0.6);
+}
+
+.lib-ik__nm { flex: 1; font-size: 0.68rem; letter-spacing: 0.03em; }
+.lib-ik__holds {
+    font-size: 0.5rem;
+    font-family: var(--font-heading);
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.lib-ik__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.4rem;
+}
+
+.lib-ik__modes { display: flex; gap: 0.2rem; }
+.lib-ik__modes .lib-btn { padding: 0.1rem 0.35rem; font-size: 0.55rem; }
+.lib-ik__modes .lib-btn[disabled] { opacity: 0.35; cursor: default; }
+
+/* Debug overlay legend. Two columns so six entries stay in three short rows
+   instead of pushing the rest of the rail off screen. */
+.lib-ik__legend {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.12rem 0.4rem;
+    margin: 0.35rem 0 0;
+    padding: 0.3rem 0 0;
+    border-top: 1px solid var(--border-color);
+}
+
+.lib-ik__key {
+    display: flex;
+    align-items: center;
+    gap: 0.28rem;
+    font-size: 0.55rem;
+    letter-spacing: 0.04em;
+    color: var(--text-muted, #8b98a8);
+    cursor: help;
+}
+
+/* A line, not a dot — it is a line in the viewport. */
+.lib-ik__swatch {
+    flex: none;
+    width: 0.7rem;
+    height: 0.12rem;
+    border-radius: 1px;
+    background: currentColor;
+}
+
+/* The Import pane's row checkbox. Drives the grid's selection — see
+   import-ui.js. Sized to match the L/R buttons beside it rather than the
+   browser default, which is larger than everything else in the rail. */
+.lib-import__pick {
+    flex: none;
+    width: 13px;
+    height: 13px;
+    margin: 0 2px 0 0;
+    accent-color: var(--primary-color);
+    cursor: pointer;
+}
+.lib-import__pick:disabled { opacity: 0.35; cursor: default; }
+
+/* The take picker: a file with several takes asks which to bring in. Its list
+   scrolls on its own, so a pack of 43 does not push the rest of the pane away. */
+.lib-import__takes {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    border: 1px solid var(--primary-color);
+    border-radius: 4px;
+    padding: 0.35rem;
+    margin: 0.2rem 0 0.35rem;
+}
+.lib-import__take-list {
+    display: flex;
+    flex-direction: column;
+    max-height: 14rem;
+    overflow-y: auto;
+    border-top: 1px solid var(--border-color, #253040);
+    padding-top: 0.15rem;
+}
+.lib-import__take {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.1rem 0.15rem;
+    border-radius: 3px;
+    cursor: pointer;
+}
+.lib-import__take:hover { background: var(--border-color, #253040); }
+.lib-import__take-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 0.62rem;
+    color: var(--text-color, #dbe4ee);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.lib-import__take--all .lib-import__take-name { font-weight: 600; }
+.lib-import__take-actions { display: flex; gap: 0.3rem; justify-content: flex-end; }
+
+/* ── Keys (KEYFRAME_SPEC K1) ──────────────────────────────────────────────── */
+
+/* A key is a moment, not a span: a diamond centred on its frame. The element
+   is a strip to everything that selects and moves strips, so it keeps that
+   class; this undoes a strip's box and draws the diamond in it. */
+.lib-seq__strip.is-key {
+    width: 14px;
+    margin-left: -7px;
+    padding: 0;
+    top: 50%;
+    bottom: auto;
+    height: 14px;
+    margin-top: -7px;
+    background: none;
+    border: none;
+    overflow: visible;
+    z-index: 2;
+}
+.lib-seq__strip.is-key::before {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    transform: rotate(45deg);
+    background: #b07cff;
+    border: 1px solid #e2cdff;
+    border-radius: 1px;
+}
+/* How it travels to the next key, in its shape: linear a square, step a
+   half-filled diamond — the same idea as Blender's dope sheet handles. */
+.lib-seq__strip.is-key.is-linear::before { transform: none; inset: 3px; }
+.lib-seq__strip.is-key.is-step::before { background: linear-gradient(135deg, #b07cff 50%, transparent 50%); }
+/* An easing (Sinusoidal… Elastic): a ring of a diamond — its colour round an empty middle. */
+.lib-seq__strip.is-key.is-eased::before { background: transparent; border: 2px solid #b07cff; }
+.lib-seq__strip.is-key.is-eased.is-selected::before { background: transparent; border-color: #fff; }
+.lib-seq__row--ik .lib-seq__strip.is-key.is-eased::before { background: transparent; border-color: #f0963c; }
+.lib-seq__row--pose .lib-seq__strip.is-key.is-eased::before { background: transparent; border-color: #57e0a0; }
+.lib-seq__row--ik .lib-seq__strip.is-key.is-eased.is-selected::before,
+.lib-seq__row--pose .lib-seq__strip.is-key.is-eased.is-selected::before { background: transparent; border-color: #fff; }
+.lib-seq__strip.is-key.is-selected::before { background: #fff; border-color: #fff; box-shadow: 0 0 0 2px rgba(176, 124, 255, 0.6); }
+.lib-seq__strip.is-key.is-step.is-selected::before { background: linear-gradient(135deg, #fff 50%, transparent 50%); }
+.lib-seq__strip.is-key.is-marquee::before { border-color: #fff; }
+.lib-seq__strip.is-key.is-selected { box-shadow: none; }
+.lib-seq__row.is-muted .lib-seq__strip.is-key::before { opacity: 0.4; }
+
+/* The value between the keys, behind them. */
+.lib-seq__spark {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    pointer-events: none;
+}
+.lib-seq__spark-line { fill: none; stroke: rgba(176, 124, 255, 0.7); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.lib-seq__spark-zero { stroke: rgba(255, 255, 255, 0.12); stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
+
+/* ◆ on an Adjust slider: hollow when the control has no keys, outlined when
+   it has keys but none on this frame, filled on a key. */
+.lib-adj__key {
+    background: none;
+    border: none;
+    padding: 0 0.1rem;
+    font-size: 0.7rem;
+    line-height: 1;
+    cursor: pointer;
+    color: transparent;
+    -webkit-text-stroke: 1px var(--text-muted, #8b98a8);
+}
+.lib-adj__key:hover { -webkit-text-stroke-color: #b07cff; }
+.lib-adj__key.is-keyed { -webkit-text-stroke-color: #b07cff; }
+.lib-adj__key.is-on { color: #b07cff; -webkit-text-stroke-color: #e2cdff; }
+.lib-adj__row.is-keyed .lib-adj__slider { accent-color: #b07cff; }
+.lib-adj__keys { align-items: center; }
+
+.lib-seq__adv.is-on { color: #b07cff; border-color: #b07cff; background: rgba(176, 124, 255, 0.1); }
+/* Previous / next key, beside Play. */
+.lib-seq__jump { padding-left: 0.35rem; padding-right: 0.35rem; letter-spacing: -0.05em; }
+.lib-seq__jump[hidden] { display: none; }
+.lib-seq__menu-num { width: 4.5rem; }
+.lib-seq__menu-unit { color: var(--text-muted, #8b98a8); margin-left: 0.25rem; }
+
+/* IK keys (KEYFRAME_SPEC K2): the same diamonds, in the gizmo's orange, and the
+   sparkline is how far the effector is from the animation. */
+.lib-seq__row--ik .lib-seq__strip.is-key::before { background: #f0963c; border-color: #ffd2a6; }
+.lib-seq__row--ik .lib-seq__strip.is-key.is-step::before { background: linear-gradient(135deg, #f0963c 50%, transparent 50%); }
+.lib-seq__row--ik .lib-seq__strip.is-key.is-selected::before { background: #fff; border-color: #fff; box-shadow: 0 0 0 2px rgba(240, 150, 60, 0.6); }
+.lib-seq__row--ik .lib-seq__strip.is-key.is-step.is-selected::before { background: linear-gradient(135deg, #fff 50%, transparent 50%); }
+.lib-seq__row--ik .lib-seq__spark-line { stroke: rgba(240, 150, 60, 0.75); }
+.lib-ik__key { margin-left: 0.2rem; }
+.lib-ik__key:hover, .lib-ik__key.is-keyed { -webkit-text-stroke-color: #f0963c; }
+.lib-ik__key.is-on { color: #f0963c; -webkit-text-stroke-color: #ffd2a6; }
+.lib-ik__pb[disabled] { opacity: 0.45; cursor: not-allowed; }
+
+/* Autosave: the scene came back on its own, and one click starts over. */
+.lib-resume {
+    position: absolute;
+    top: 0.75rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 6;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    max-width: calc(100% - 1.5rem);
+    padding: 0.4rem 0.45rem 0.4rem 0.8rem;
+    font-size: 0.72rem;
+    color: var(--text-primary, #dbe4ee);
+    background: rgba(16, 22, 30, 0.92);
+    border: 1px solid var(--primary-color);
+    border-radius: 4px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+}
+
+/* Projects: which project is on screen, and whether it is saved. */
+.lib-proj__cur {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0.35rem 0 0.4rem;
+    padding: 0.35rem 0.5rem;
+    font-size: 0.68rem;
+    border: 1px solid var(--border-color, #253040);
+    border-radius: 3px;
+}
+.lib-proj__cur-dot { width: 0.6rem; color: #e0a03a; }
+.lib-proj__cur-name { color: var(--text-primary, #dbe4ee); font-weight: 600; }
+.lib-proj__cur-note { flex: 1; color: var(--text-muted, #8b98a8); }
+.lib-proj__cur.is-dirty { border-color: #e0a03a; }
+.lib-proj__cur.is-dirty .lib-proj__cur-note { color: #e0a03a; }
+.lib-proj__files { display: flex; gap: 0.4rem; margin-bottom: 0.4rem; }
+.lib-preset.is-current .lib-preset__name { color: var(--primary-color); }
+.lib-preset.is-current .lib-preset__name::before { content: '▸ '; }
+
+/* Pose layers (KEYFRAME_SPEC K3): green, like the joint markers. */
+.lib-seq__row--pose .lib-seq__strip.is-key::before { background: #57e0a0; border-color: #c7f7df; }
+.lib-seq__row--pose .lib-seq__strip.is-key.is-step::before { background: linear-gradient(135deg, #57e0a0 50%, transparent 50%); }
+.lib-seq__row--pose .lib-seq__strip.is-key.is-selected::before { background: #fff; border-color: #fff; box-shadow: 0 0 0 2px rgba(87, 224, 160, 0.6); }
+.lib-seq__row--pose .lib-seq__strip.is-key.is-step.is-selected::before { background: linear-gradient(135deg, #fff 50%, transparent 50%); }
+.lib-seq__row--pose .lib-seq__spark-line { stroke: rgba(87, 224, 160, 0.75); }
+.lib-seq__row--pose .lib-seq__hweight { width: 52px; accent-color: #57e0a0; }
+
+.lib-pose__bone { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin: 0.35rem 0 0.5rem; font-size: 0.68rem; }
+.lib-pose__bone-name { color: #57e0a0; font-weight: 600; }
+.lib-pose__bone-note { color: var(--text-muted, #8b98a8); }
+.lib-pose__layers { list-style: none; margin: 0 0 0.5rem; padding: 0; display: grid; gap: 0.25rem; }
+.lib-pose__layer {
+    display: flex; align-items: center; gap: 0.35rem; padding: 0.3rem 0.4rem; font-size: 0.66rem;
+    border: 1px solid var(--border-color, #253040); border-radius: 3px; cursor: pointer;
+}
+.lib-pose__layer.is-sel { border-color: #57e0a0; }
+.lib-pose__layer.is-muted .lib-pose__name { opacity: 0.45; text-decoration: line-through; }
+.lib-pose__name { color: var(--text-primary, #dbe4ee); font-weight: 600; }
+.lib-pose__meta { flex: 1; color: var(--text-muted, #8b98a8); }
+.lib-pose__weight { width: 52px; accent-color: #57e0a0; }
+.lib-pose__tools { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+/* P1: the bone list, and the box being dragged over the viewport. */
+.lib-pose__list { margin: 0 0 0.5rem; font-size: 0.66rem; }
+.lib-pose__list > summary { cursor: pointer; color: var(--text-muted, #8b98a8); margin-bottom: 0.3rem; }
+.lib-pose__group { margin: 0 0 0.35rem; }
+.lib-pose__group-name { color: var(--text-muted, #8b98a8); font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.15rem; }
+.lib-pose__items { display: flex; flex-wrap: wrap; gap: 0.2rem; }
+.lib-pose__item {
+    font: inherit; font-size: 0.62rem; padding: 0.08rem 0.35rem; cursor: pointer; border-radius: 3px;
+    color: var(--text-primary, #dbe4ee); background: transparent; border: 1px solid var(--border-color, #253040);
+}
+.lib-pose__item:hover { border-color: #2ee88a; }
+.lib-pose__item.is-set { color: #ff8a3d; border-color: #ff8a3d; }
+.lib-pose__item.is-sel { color: #ffd633; border-color: #ffd633; }
+/* P4: typed rotation, the pending preview, the R / G hint. */
+.lib-pose__euler { display: inline-flex; gap: 0.25rem; }
+.lib-pose__axis { display: inline-flex; align-items: center; gap: 0.15rem; color: var(--text-muted, #8b98a8); font-size: 0.6rem; }
+.lib-pose__num {
+    width: 4.2rem; font: inherit; font-size: 0.64rem; padding: 0.08rem 0.25rem; border-radius: 3px;
+    color: var(--text-primary, #dbe4ee); background: var(--bg-input, #10161f); border: 1px solid var(--border-color, #253040);
+}
+.lib-pose__pending {
+    display: flex; align-items: center; gap: 0.4rem; margin: 0 0 0.5rem; padding: 0.3rem 0.4rem; font-size: 0.64rem;
+    color: #ffd633; border: 1px dashed #ffd633; border-radius: 3px;
+}
+.lib-seq__strip.is-key.is-pending { pointer-events: none; }
+.lib-seq__strip.is-key.is-pending::before { background: none !important; border: 1px dashed #ffd633 !important; }
+.lib-modalhint {
+    position: fixed; z-index: 60; pointer-events: none; padding: 0.3rem 0.5rem; font-size: 0.68rem;
+    color: #dbe4ee; background: rgba(14, 19, 27, 0.88); border: 1px solid #ffd633; border-radius: 3px;
+}
+.lib-posebox { position: fixed; z-index: 50; pointer-events: none; border: 1px dashed #ffd633; background: rgba(255, 214, 51, 0.08); }
+
+/* R3: a character on its own skeleton — which of their bones plays ours. */
+.lib-charmap { margin-top: 0.4rem; font-size: 0.7rem; }
+.lib-charmap summary { cursor: pointer; color: var(--text-secondary, #9aa7b4); }
+.lib-charmap__rows { max-height: 14rem; overflow-y: auto; margin-top: 0.3rem; }
+.lib-charmap__row { display: grid; grid-template-columns: 7.5rem 1rem 1fr auto; gap: 0.3rem; padding: 0.1rem 0; border-bottom: 1px solid rgba(255, 255, 255, 0.04); }
+.lib-charmap__ours { color: var(--text-primary, #dbe4ee); }
+.lib-charmap__arrow { opacity: 0.5; }
+.lib-charmap__theirs { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lib-charmap__how { opacity: 0.5; }
+
+/* R3b: the Retarget panel — our bones, which of theirs plays each. */
+.lib-retarget__status { margin: 0.2rem 0 0.4rem; font-size: 0.72rem; padding: 0.35rem 0.5rem; border-radius: 4px; }
+.lib-retarget__status.is-ready { color: #bff5d6; background: rgba(46, 232, 138, 0.1); border: 1px solid rgba(46, 232, 138, 0.35); }
+.lib-retarget__status.is-missing { color: #ffd9a8; background: rgba(255, 170, 60, 0.1); border: 1px solid rgba(255, 170, 60, 0.35); }
+.lib-retarget__tools, .lib-retarget__views { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.4rem; }
+.lib-retarget__group { margin: 0.25rem 0; font-size: 0.72rem; }
+.lib-retarget__group summary { cursor: pointer; color: var(--text-secondary, #9aa7b4); padding: 0.15rem 0; }
+.lib-retarget__row { display: grid; grid-template-columns: 5.2rem minmax(0, 1fr) 0.9rem auto; gap: 0.3rem; align-items: center; padding: 0.12rem 0.2rem; border-radius: 3px; }
+.lib-retarget__mark { font-size: 0.72rem; text-align: center; }
+.lib-retarget__mark.is-ok { color: #2ee88a; }
+.lib-retarget__mark.is-bad { color: #ff7070; }
+.lib-retarget__mark.is-need { color: #ffaa3c; font-weight: 700; }
+.lib-retarget__group summary .lib-retarget__mark { margin-left: 0.2rem; font-size: 0.66rem; }
+.lib-retarget__status.is-warn { color: #ffd0d0; background: rgba(255, 90, 90, 0.1); border: 1px solid rgba(255, 90, 90, 0.35); }
+.lib-btn.is-good { color: #06150d; background: #2ee88a; border-color: #2ee88a; }
+.lib-btn.is-good:hover { background: #5cf0a6; }
+.lib-retarget__ours { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lib-retarget__row select.is-manual { border-left: 3px solid #ffd633; }
+.lib-retarget__row select { min-width: 0; width: 100%; font-size: 0.7rem; background: rgba(0, 0, 0, 0.25); color: inherit; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 3px; padding: 0.1rem 0.2rem; }
+.lib-retarget__how { font-size: 0.64rem; opacity: 0.55; }
+.lib-retarget__row.is-missing { background: rgba(255, 170, 60, 0.12); }
+.lib-retarget__row.is-bad { background: rgba(255, 90, 90, 0.12); }
+.lib-retarget__row.is-focus { outline: 1px solid rgba(255, 214, 51, 0.6); }
+.lib-retarget__row.is-armed { outline: 1px solid #ffd633; background: rgba(255, 214, 51, 0.12); }
+.lib-retarget__issue { margin: 0 0 0.25rem 0.4rem; font-size: 0.64rem; color: #ff9a9a; }
+#lib-rig-panel.is-busy .lib-retarget__row { opacity: 0.6; }
+.lib-jointtip { position: absolute; z-index: 7; pointer-events: none; padding: 0.15rem 0.4rem; font-size: 0.68rem; color: #e8eef4; background: rgba(16, 22, 30, 0.92); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 3px; white-space: nowrap; }
+
+.lib-retarget__hold { display: flex; align-items: center; gap: 0.35rem; font-size: 0.74rem; margin-top: 0.2rem; }
+.lib-retarget__note { margin: 0.1rem 0 0.4rem 1.4rem; font-size: 0.64rem; opacity: 0.6; }
+
+/* R4: the Rig it panel. */
+.lib-autorig__steps { margin: 0.2rem 0 0.4rem; padding-left: 1.1rem; font-size: 0.72rem; line-height: 1.45; }
+.lib-autorig__steps li { margin: 0.2rem 0; }
+.lib-autorig__height { display: flex; align-items: center; gap: 0.35rem; margin: 0.2rem 0 0.4rem; font-size: 0.72rem; }
+.lib-autorig__height input { width: 4.5rem; }
+.lib-autorig__height select { min-width: 0; font: inherit; }
+/* S6: cloth and props — tagged by a click on the piece. */
+.lib-autorig__tags { margin: 0.2rem 0 0.5rem; padding-top: 0.35rem; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+.lib-autorig__tagshead { margin: 0 0 0.3rem; font-size: 0.72rem; color: var(--text-primary, #dbe4ee); }
+.lib-autorig__taghint { margin: 0 0 0.35rem; font-size: 0.66rem; opacity: 0.65; }
+.lib-autorig__tool.is-cloth.is-on { border-color: #ff4d4d; color: #ff8a8a; background: rgba(255, 77, 77, 0.12); }
+.lib-autorig__tool.is-prop.is-on { border-color: #3fa9ff; color: #8ccaff; background: rgba(63, 169, 255, 0.12); }
+.lib-autorig__tag { display: grid; grid-template-columns: 0.7rem minmax(0, 1fr) auto; gap: 0.2rem 0.35rem; align-items: center; padding: 0.12rem 0; font-size: 0.7rem; }
+.lib-autorig__swatch { width: 0.7rem; height: 0.7rem; border-radius: 2px; }
+.lib-autorig__tag.is-cloth .lib-autorig__swatch { background: #ff4d4d; }
+.lib-autorig__tag.is-prop .lib-autorig__swatch { background: #3fa9ff; }
+.lib-autorig__tagname { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lib-autorig__tag select { grid-row: 2; grid-column: 2 / 4; font-size: 0.68rem; background: rgba(0, 0, 0, 0.25); color: inherit; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 3px; padding: 0.1rem 0.2rem; }
+.lib-autorig__untag { grid-row: 1; grid-column: 3; }
+/* S9: an envelope's size — the bone's name, a slider, the multiple. */
+.lib-autorig__envsize { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 0.2rem 0.4rem; align-items: center; padding: 0.15rem 0 0.3rem; font-size: 0.7rem; }
+.lib-autorig__envsize input[type="range"] { grid-row: 2; grid-column: 1 / 3; width: 100%; accent-color: var(--primary-color, #29c6d8); }
+.lib-autorig__envk { grid-row: 2; grid-column: 3; font-variant-numeric: tabular-nums; opacity: 0.8; }
+
+/* A download: what was saved, and a real link to tap if nothing came
+   (save-file.js). Bottom centre, over everything; in another app's built-in
+   browser it turns amber and stays until dismissed. */
+.af-save {
+    position: fixed;
+    left: 50%;
+    bottom: 1rem;
+    transform: translateX(-50%);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.7rem;
+    max-width: min(34rem, calc(100vw - 2rem));
+    padding: 0.5rem 0.5rem 0.5rem 0.9rem;
+    font-family: var(--font-primary);
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    background: rgba(16, 22, 30, 0.95);
+    border: 1px solid var(--primary-color);
+    border-radius: 4px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+}
+.af-save--warn { border-color: #f0b429; }
+.af-save__text { flex: 1 1 12rem; }
+.af-save__link {
+    color: var(--primary-color);
+    font-weight: 600;
+    text-decoration: underline;
+    padding: 0.25rem 0.2rem;
+}
+.af-save--warn .af-save__link { color: #f0b429; }
+.af-save__close {
+    background: none;
+    border: 0;
+    color: var(--text-muted);
+    font: inherit;
+    cursor: pointer;
+    min-width: 1.8rem;
+    min-height: 1.8rem;
+}
+.af-save__close:hover { color: var(--text-primary); }
+
+/* Animations | Characters, above the search box. */
+.lib-panel__tabs { display: flex; gap: 0.3rem; margin-bottom: 0.6rem; }
+.lib-panel__tab {
+    flex: 1 1 0;
+    padding: 0.35rem 0.5rem;
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+.lib-panel__tab:hover { color: var(--text-primary); }
+.lib-panel__tab.is-on { border-color: var(--primary-color); color: var(--primary-color); }
+
+/* The Characters grid: the clip grid's tiles, with section titles across it. */
+.lib-chargrid__title {
+    grid-column: 1 / -1;
+    margin: 0.2rem 0 -0.1rem;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.lib-chartile { position: relative; }
+.lib-chartile__badge {
+    position: absolute;
+    top: 0.35rem;
+    left: 0.35rem;
+    padding: 0.05rem 0.3rem;
+    font-size: 0.62rem;
+    color: #10161e;
+    background: #f0b429;
+    border-radius: 2px;
+}
+.lib-chartile__plus {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: var(--text-muted);
+}
+.lib-chartile--add:hover .lib-chartile__plus { color: var(--primary-color); }
+
+/* The empty grid's way out of a filter. */
+.lib-empty__clear { margin-top: 0.8rem; }
+
+/* A clip that takes a moment to load says so, top centre of the stage. */
+.lib-stage.is-switching::before {
+    content: 'Loading clip…';
+    position: absolute;
+    top: 0.75rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 6;
+    padding: 0.3rem 0.8rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    background: rgba(16, 22, 30, 0.92);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    pointer-events: none;
+}
+
+/* A failed download: the plain words, the detail small underneath, the way out. */
+.lib-status__detail { font-size: 0.75rem; color: var(--text-muted); max-width: 32rem; text-align: center; overflow-wrap: anywhere; }
+.lib-status__actions { display: flex; gap: 0.5rem; justify-content: center; }
+
+/* A character's state on its card, and the ↓ choice under it. */
+.lib-char__badge {
+    align-self: center;
+    padding: 0.05rem 0.3rem;
+    font-size: 0.62rem;
+    color: #10161e;
+    background: #f0b429;
+    border-radius: 2px;
+    white-space: nowrap;
+}
+.lib-char__badge.is-ok { background: #57e0a0; }
+.lib-char__ask { display: flex; flex-wrap: wrap; gap: 0.3rem; margin: 0.2rem 0 0.4rem; }
+
+/* A character that isn't on our skeleton: which kind, and the way on. */
+.lib-char__badge.is-own { background: #6ba8ff; }
+.lib-chartile__badge.is-own { background: #6ba8ff; }
+.lib-charcheck__choice { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.4rem 0 0.6rem; }
+.lib-charcheck__choice .lib-comp__hint { flex-basis: 100%; margin: 0 0 0.2rem; }
+
+/* Two ways to add a character, each with its line: rigged, or not. */
+.lib-addways { display: grid; gap: 0.5rem; margin: 0.6rem 0 0.4rem; }
+.lib-addway { display: grid; gap: 0.2rem; }
+.lib-addway .lib-btn { justify-self: start; }
+/* (Lighter than a hint elsewhere: a few words under a button, to be read.) */
+.lib-addway__line { margin: 0; color: #b9c4d2; }
+
+/* The tool panel's edge, to drag it wider (library-init.js). Gone with the panel. */
+.lib-toolpanel__grip {
+    flex: 0 0 6px;
+    cursor: col-resize;
+    background: transparent;
+    border-left: 1px solid var(--border-color);
+    touch-action: none;
+    transition: background var(--transition-fast);
+}
+.lib-toolpanel__grip:hover,
+.lib-toolpanel__grip.is-dragging { background: rgba(9, 197, 204, 0.35); }
+.lib-toolpanel[hidden] + .lib-toolpanel__grip { display: none; }
+
+/* ── THE TIMELINE'S OTHER VIEW: the keys as curves (curve-graph.js) ──────────
+   The panel shows strips or this, never both: one switch in the bar, and the
+   graph takes the lanes' place. */
+.lib-seq__view { display: inline-flex; }
+.lib-seq__viewopt { position: relative; }
+.lib-seq__viewopt + .lib-seq__viewopt { margin-left: -1px; }
+.lib-seq__viewopt.is-on {
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+    background: rgba(9, 197, 204, 0.1);
+    z-index: 1;
+}
+.lib-seq__scroll[hidden],
+.lib-seq__graph[hidden] { display: none; }
+.lib-seq__graph {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+}
+
+/* The curves, by name, down the side — as wide as the lanes' heads, so the
+   graph's left edge is where the strips' was. */
+.lib-graph__side {
+    flex: 0 0 168px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    border-right: 1px solid var(--border-color);
+}
+.lib-graph__sidehead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.3rem 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    flex: 0 0 auto;
+}
+.lib-graph__sidetitle {
+    font-family: var(--font-heading);
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.lib-graph__sidehead .lib-btn { padding: 0.1rem 0.4rem; font-size: 0.58rem; }
+.lib-graph__list {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 0.25rem 0;
+}
+.lib-graph__group {
+    padding: 0.35rem 0.5rem 0.1rem;
+    font-size: 0.66rem;
+    color: var(--text-primary);
+}
+.lib-graph__row {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.14rem 0.5rem;
+    font-size: 0.66rem;
+    color: var(--text-primary);
+    cursor: pointer;
+}
+.lib-graph__row--axis { padding-left: 1.1rem; }
+.lib-graph__row--pose { cursor: default; }
+.lib-graph__row.is-lit { background: rgba(255, 255, 255, 0.06); }
+.lib-graph__row.is-muted,
+.lib-graph__group.is-muted { opacity: 0.55; }
+.lib-graph__row input { margin: 0; accent-color: var(--primary-color); cursor: pointer; }
+.lib-graph__dot { flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%; }
+.lib-graph__diamond { flex: 0 0 13px; text-align: center; font-size: 0.56rem; color: rgba(87, 224, 160, 0.95); }
+.lib-graph__name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.lib-graph__row:not(.lib-graph__row--pose) .lib-graph__name:hover { color: var(--primary-color); }
+.lib-graph__rowunit { flex: 0 0 auto; font-size: 0.58rem; color: var(--text-muted); }
+
+.lib-graph__main {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+/* The picked key's numbers and kinds. Always there, greyed when there is
+   nothing picked: a row that came and went would move the curves. */
+.lib-graph__tools {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.3rem 0.9rem;
+    padding: 0.3rem 0.6rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    font-size: 0.64rem;
+}
+.lib-graph__field,
+.lib-graph__seg { display: inline-flex; align-items: center; gap: 0.3rem; }
+.lib-graph__label { color: var(--text-muted); }
+.lib-graph__num,
+.lib-graph__select {
+    width: 4.4rem;
+    font: inherit;
+    font-size: 0.66rem;
+    padding: 0.1rem 0.25rem;
+    color: var(--text-primary, #dbe4ee);
+    background: var(--panel-bg, #0e141c);
+    border: 1px solid var(--border-color, #253040);
+    border-radius: 0;
+}
+.lib-graph__select { width: auto; }
+.lib-graph__num--frame { width: 3.6rem; }
+.lib-graph__num:focus { border-color: var(--primary-color); outline: none; }
+.lib-graph__num:disabled { opacity: 0.45; }
+.lib-graph__unit { min-width: 1.5rem; color: var(--text-muted); }
+.lib-graph__opt { padding: 0.1rem 0.4rem; font-size: 0.62rem; text-transform: none; letter-spacing: 0; }
+.lib-graph__opt + .lib-graph__opt { margin-left: -0.15rem; }
+.lib-graph__opt.is-on { color: var(--primary-color); border-color: var(--primary-color); }
+.lib-graph__tools .lib-btn:disabled { opacity: 0.45; cursor: default; }
+.lib-graph__spacer { flex: 1 1 auto; }
+.lib-graph__help { color: var(--text-muted); font-size: 0.6rem; }
+/* While G, R or S runs: what it is doing, in the bar, plainly lit. */
+.lib-graph__help.is-busy { color: var(--primary-color); font-size: 0.66rem; }
+.lib-graph__wrap {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+}
+.lib-graph__canvas {
+    position: absolute;
+    inset: 0;
+    display: block;
+    outline: none;
+    touch-action: none;
+}
+.lib-graph__empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 1rem;
+    text-align: center;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+.lib-graph__empty[hidden] { display: none; }
+
+/* ── A NEW ANIMATION: the small form under its masthead button (new-animation.js) ── */
+.lib-newpop {
+    position: fixed;
+    z-index: 70;
+    width: min(22rem, calc(100vw - 16px));
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    padding: 0.75rem 0.85rem;
+    font-size: 0.74rem;
+    color: var(--text-primary, #dbe4ee);
+    background: #10161e;
+    border: 1px solid var(--primary-color);
+    border-radius: 0;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+}
+.lib-newpop__row { display: flex; align-items: center; gap: 0.5rem; }
+.lib-newpop__row:has(.lib-newpop__choices) { align-items: flex-start; }
+.lib-newpop__label { flex: 0 0 4.3rem; color: var(--text-muted); }
+.lib-newpop__text,
+.lib-newpop__num {
+    font: inherit;
+    padding: 0.28rem 0.4rem;
+    color: inherit;
+    background: #0a0f15;
+    border: 1px solid var(--border-color);
+    border-radius: 0;
+}
+.lib-newpop__text { flex: 1 1 auto; min-width: 0; }
+.lib-newpop__num { width: 4.6rem; }
+.lib-newpop__text:focus,
+.lib-newpop__num:focus { border-color: var(--primary-color); outline: none; }
+.lib-newpop__unit { color: var(--text-muted); font-size: 0.66rem; }
+.lib-newpop__choices { display: flex; flex-direction: column; gap: 0.3rem; }
+.lib-newpop__choice { display: flex; align-items: center; gap: 0.4rem; cursor: pointer; }
+.lib-newpop__choice.is-off { opacity: 0.5; cursor: default; }
+.lib-newpop__choice input { margin: 0; accent-color: var(--primary-color); }
+.lib-newpop__note { margin: 0; font-size: 0.66rem; line-height: 1.4; color: var(--text-muted); }
+.lib-newpop__err { margin: 0; font-size: 0.68rem; color: #e98080; }
+.lib-newpop__err[hidden] { display: none; }
+
+/* A pose layer's bones in the graph's list: under the layer, folded or not, a tick each. */
+.lib-graph__fold {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    width: 100%;
+    font: inherit;
+    font-size: 0.66rem;
+    text-align: left;
+    color: var(--text-primary);
+    background: none;
+    border: 0;
+    cursor: pointer;
+}
+.lib-graph__fold:hover .lib-graph__name { color: var(--primary-color); }
+.lib-graph__caret { flex: 0 0 0.7rem; color: var(--text-muted); font-size: 0.6rem; }
+.lib-graph__row--bone { padding-left: 1.1rem; }
+.lib-graph__row--bone.is-picked .lib-graph__name { color: var(--primary-color); }
+.lib-graph__row--deep { padding-left: 2.1rem; }
+/* The list as Blender's channel list: a picked curve lit, a search, and L (lock) and M (mute) as the lanes' toggles. */
+.lib-graph__row.is-sel { background: rgba(255, 255, 255, 0.1); }
+.lib-graph__row.is-sel .lib-graph__name { color: #fff; }
+.lib-graph__row.is-locked .lib-graph__name { opacity: 0.6; }
+.lib-graph__group--ctl { display: flex; align-items: center; gap: 0.3rem; }
+.lib-graph__search {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0 0.35rem;
+    padding: 0.08rem 0.3rem;
+    font: inherit;
+    font-size: 0.6rem;
+    color: var(--text-primary);
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--border-color);
+    border-radius: 0;
+}
+.lib-graph__search:focus { border-color: var(--primary-color); outline: none; }
+.lib-graph__tog {
+    flex: 0 0 auto;
+    padding: 0 0.25rem;
+    font: inherit;
+    font-size: 0.56rem;
+    line-height: 1.35;
+    color: var(--text-muted);
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 0;
+    cursor: pointer;
+}
+.lib-graph__tog:hover { color: var(--text-primary); border-color: var(--border-color); }
+.lib-graph__tog.is-on { color: var(--primary-color); border-color: var(--primary-color); }
+/* Blender's header menus, Channel and Key, first in the graph's bar. */
+.lib-graph__menubtn { padding: 0.1rem 0.5rem; font-size: 0.62rem; text-transform: none; letter-spacing: 0; }
+/* Said over a graph that is still up (pose keys along the bottom, no curve drawn). */
+.lib-graph__empty.is-over { pointer-events: none; }
+
+/* ── AN ANIMAL IS ON STAGE (assets/animation-library/ANIMALS_SPEC.md A2) ────────
+   The page has the class "is-animal" while an animal stands in for the human. What is built on the human body is
+   not usable then — but NOTHING IS TAKEN OFF THE PAGE: every control keeps its place and its size, greyed, so the
+   page does not change shape. (The side panel is as wide as its download bar: with that gone it folded to one
+   column.) Which controls those are is said in one place, scripts/library-init.js, which marks each of them
+   "is-off-for-animal" and makes it inert. */
+.is-off-for-animal { opacity: 0.32; pointer-events: none; filter: grayscale(1); }
+
+/* ── THE PICKER (STORY_LAB_SPEC S30): the body, or a hand, as a picture with a spot on every joint ──────────────
+   While it is open the tool column is wider: the picture is as wide as the column, and the bigger it is the
+   easier a finger's joint is to hit. */
+.lib-toolpanel.has-picker { width: 360px; }
+.lib-picker__modes { display: flex; gap: 0.25rem; align-items: center; }
+.lib-picker__gap { flex: 1; }
+.lib-picker {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    background: #0c0c0c;
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+    touch-action: none;
+    user-select: none;
+    cursor: crosshair;
+}
+.lib-picker__pic { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; -webkit-user-drag: none; }
+.lib-picker__pic:not([src]) { visibility: hidden; }
+.lib-picker__pic.is-flipped { transform: scaleX(-1); }
+.lib-picker__spots { position: absolute; inset: 0; }
+.lib-picker__spot {
+    position: absolute;
+    width: 13px;
+    height: 13px;
+    margin: -6.5px 0 0 -6.5px;
+    padding: 0;
+    min-width: 0;
+    border-radius: 0;
+    background: rgba(8, 8, 8, 0.74);
+    border: 1px solid #fff;
+    cursor: pointer;
+}
+.lib-picker__spot:hover { border-color: var(--primary-color); }
+.lib-picker__spot.is-on { background: var(--primary-color); border-color: var(--primary-color); }
+.lib-picker__spot.is-on.is-last { border-color: #fff; }
+.lib-picker__band { position: absolute; border: 1px dashed var(--primary-color); background: rgba(9, 197, 204, 0.14); pointer-events: none; }
+.lib-picker__band[hidden] { display: none; }
+
+/* ── THE POSES, in the library's panel (STORY_LAB_SPEC S31) ───────────────────────────────────────────────────
+   Where the animations' grid is: its own row of switches, then a grid of the same tiles. */
+.lib-poses { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.lib-poses[hidden] { display: none; }
+.lib-poses__modes { display: flex; gap: 0.25rem; align-items: center; padding: 0.45rem 0.35rem 0.1rem; }
+.lib-poses__gap { flex: 1; }
+.lib-tile--pose .lib-tile__media { aspect-ratio: 5 / 6; }
+.lib-tile--pose .lib-tile__media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* (S32) The tick under the switches; and a pose that is being gone part of the way to, by a drag across its
+   picture: how far, said on it. */
+.lib-poses__only { padding: 0.35rem 0.45rem 0.1rem; }
+.lib-tile--pose { touch-action: none; }
+.lib-tile--pose.is-blending { border-color: var(--primary-color); cursor: ew-resize; }
+.lib-tile--pose.is-blending::after {
+    content: attr(data-blend);
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    padding: 0.2rem 0;
+    background: rgba(8, 8, 8, 0.86);
+    color: var(--primary-color);
+    font-weight: 700;
+    font-size: 0.8rem;
+    text-align: center;
+    pointer-events: none;
+}
+/* (S33) What a turn is about: the Pose panel's Axes. */
+.lib-pose__axes {
+    background: var(--bg-light);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    padding: 0.2rem 0.35rem;
+    font: inherit;
+    font-size: 0.66rem;
+    cursor: pointer;
+}
+.lib-pose__axes:focus { outline: none; border-color: var(--primary-color); }
+/* (S34) A visitor's own poses: the two buttons that keep one; and, on a tile of theirs, the mark that it is, and
+   the two small things done to it there. */
+.lib-poses__save { display: flex; gap: 0.3rem; padding: 0.35rem 0.4rem 0.1rem; }
+.lib-poses__save .lib-btn { flex: 1; }
+.lib-poses__view { padding: 0.25rem 0.45rem 0; font-size: 0.64rem; }
+.lib-tile__own {
+    position: absolute;
+    left: 3px;
+    top: 3px;
+    padding: 0 0.3rem;
+    font-size: 0.55rem;
+    line-height: 1.5;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    background: var(--primary-color);
+    color: #041314;
+    font-weight: 700;
+    pointer-events: none;
+}
+.lib-tile__own-tools { position: absolute; right: 3px; top: 3px; display: flex; gap: 2px; }
+.lib-tile__own-tool {
+    padding: 0 0.3rem;
+    font-size: 0.66rem;
+    line-height: 1.45;
+    background: rgba(8, 8, 8, 0.86);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary, #c8d0d8);
+    cursor: pointer;
+}
+.lib-tile__own-tool:hover { border-color: var(--primary-color); color: var(--primary-color); }
+/* ── THE STAGE TOOL (STORY_LAB_SPEC S39): the scene's camera ────────────────────────────────────────────────── */
+.lib-stagetool__row { display: flex; align-items: center; gap: 0.25rem; }
+.lib-stagetool__gap { flex: 1; }
+/* The camera's settings: always there, greyed until a camera is set. */
+.lib-stagetool__set { display: flex; flex-direction: column; gap: 0.4rem; min-width: 0; margin: 0; padding: 0; border: 0; }
+.lib-stagetool__set:disabled { opacity: 0.45; }
+.lib-stagetool__head {
+    margin: 0.55rem 0 0;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border-color);
+    font-family: var(--font-heading);
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--primary-color);
+}
+.lib-stagetool__field {
+    display: grid;
+    grid-template-columns: 5.6rem minmax(0, 1fr);
+    align-items: center;
+    gap: 0.25rem 0.4rem;
+    font-size: 0.64rem;
+    color: var(--text-secondary);
+}
+.lib-stagetool__field--wide { grid-template-columns: minmax(0, 1fr); }
+.lib-stagetool__field.is-off { opacity: 0.4; pointer-events: none; }
+.lib-stagetool__field input[type="number"],
+.lib-stagetool__field select {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 0.18rem 0.3rem;
+    font: inherit;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+}
+.lib-stagetool__field input[type="range"] { width: 100%; min-width: 0; accent-color: var(--primary-color); }
+.lib-stagetool__three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.25rem; }
+.lib-stagetool__pair { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 0.25rem; }
+.lib-stagetool__with { display: grid; grid-template-columns: minmax(0, 1fr) 3.3rem; align-items: center; gap: 0.3rem; }
+.lib-stagetool__two { display: grid; grid-template-columns: 1fr 1fr; gap: 0.25rem; }
+.lib-stagetool__two .lib-btn { min-width: 0; text-align: center; }
+/* (Three or two numbers in a row have no room for the little arrows.) */
+.lib-stagetool__three input[type="number"],
+.lib-stagetool__pair input[type="number"] { appearance: textfield; -moz-appearance: textfield; }
+
+/* The picture's frame, over the view while the camera is looked through: what is outside it is dimmed, and is
+   no part of the picture. (Under what the page writes over its view; it takes no click.) */
+.lib-shotframe { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.lib-shotframe[hidden] { display: none; }
+.lib-shotframe > i { position: absolute; display: block; border: 1px solid var(--primary-color); }
+.lib-shotframe svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.lib-shotframe svg line,
+.lib-shotframe svg rect { fill: none; stroke: rgba(255, 255, 255, 0.5); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.lib-shotframe span {
+    position: absolute;
+    left: -1px;
+    bottom: 100%;
+    padding: 0.1rem 0.35rem;
+    font-family: var(--font-heading);
+    font-size: 0.55rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: var(--bg-dark);
+    background: var(--primary-color);
+}
+
+/* The shot, small, in a corner of the free view (as Story Lab has it): as wide as its corner was last dragged,
+   and never so large that the scene is lost. The viewer draws the picture into the view itself, where the hole
+   is; this is its border, its name, and the dark round the hole. It stands above the credit, which nothing may
+   cover, and takes no click but on its corner. */
+.lib-shotpip {
+    position: absolute;
+    right: 1rem;
+    bottom: 2.6rem;
+    width: 260px;
+    aspect-ratio: 260 / 170;
+    max-width: 60%;
+    max-height: 70%;
+    overflow: hidden;
+    border: 1px solid var(--primary-color);
+    pointer-events: none;
+}
+.lib-shotpip[hidden] { display: none; }
+.lib-shotpip span {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 1;
+    padding: 0 8px 0 20px;
+    font: 10px/20px var(--font-heading);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--primary-color);
+}
+.lib-shotpip__pic { position: absolute; box-shadow: 0 0 0 4000px rgba(8, 8, 8, 0.92), inset 0 0 0 1px rgba(8, 8, 8, 0.92); }
+.lib-shotpip__grip { position: absolute; left: 0; top: 0; z-index: 2; width: 20px; height: 20px; pointer-events: auto; cursor: nwse-resize; touch-action: none; }
+.lib-shotpip__grip::before { content: ""; position: absolute; left: 4px; top: 4px; width: 8px; height: 8px; border-left: 2px solid var(--primary-color); border-top: 2px solid var(--primary-color); opacity: 0.65; }
+.lib-shotpip__grip:hover::before { opacity: 1; }
+
+/* ── Onion skin (onion-ui.js) ──────────────────────────────────────────────
+   Its settings, in the menus' rows, opened above the ▾ beside the Onion button: eight rows, settings above a
+   line and lists below it; every button the Pose panel's small size (its Snap row, .lib-ik__modes). Sharp. */
+.lib-onion { width: 36rem; }
+.lib-onion .lib-btn { padding: 0.1rem 0.35rem; font-size: 0.55rem; min-width: 0; }
+.lib-onion .lib-btn[disabled] { opacity: 0.35; cursor: default; }
+.lib-onion .lib-seq__menu-group { gap: 0.3rem; }
+/* The small words between numbers (before, after, every, near, far). */
+.lib-onion__word { font-size: 0.6rem; color: var(--text-muted); }
+.lib-onion__gap { width: 0.35rem; }
+.lib-onion__line { height: 1px; margin: 0.35rem 0; background: var(--border-color, #253040); }
+/* A listed group or frame: its name (go there, or on and off) and its × (take it off), side by side. */
+.lib-onion__chip { display: inline-flex; }
+.lib-onion__chip > .lib-btn + .lib-btn { margin-left: -1px; }
+.lib-onion .lib-seq__menu-num { width: 2.8rem; border-radius: 0; }
+/* A colour as a small square; hovering it names it. */
+.lib-onion__colour {
+    width: 1.25rem;
+    height: 1.25rem;
+    padding: 0;
+    background: none;
+    border: 1px solid var(--border-color, #253040);
+    border-radius: 0;
+    cursor: pointer;
+}
+.lib-onion__colour::-webkit-color-swatch-wrapper { padding: 2px; }
+.lib-onion__colour::-webkit-color-swatch { border: 0; border-radius: 0; }
+.lib-onion__colour::-moz-color-swatch { border: 0; border-radius: 0; }
+.lib-onion__colour:focus { border-color: var(--primary-color); outline: none; }
