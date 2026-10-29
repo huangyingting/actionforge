@@ -95,7 +95,7 @@ test('Next builds source chunks and a working skin-weight worker without publish
   }
 });
 
-test('renders original workspace without browser errors or broken resources', async ({ page }) => {
+test('renders workspace without browser errors or broken resources', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('response', response => {
@@ -169,6 +169,7 @@ test('adjustments support undo, redo and reset', async ({ page }) => {
 
 test('exports a valid GLB and FBX from the current clip', async ({ page }) => {
   await openWorkspace(page);
+  await page.getByRole('button', { name: 'Export', exact: true }).click();
   for (const format of ['glb', 'fbx']) {
     await page.locator('#lib-bundle-format').selectOption(format);
     const result = page.waitForEvent('download');
@@ -191,12 +192,14 @@ test('bundles selected clips into a ZIP and composes body regions', async ({ pag
     await expect(pick).toHaveAttribute('aria-checked', 'true');
   }
   await expect(page.locator('#lib-bundle-count')).toContainText('2');
+  await page.getByRole('button', { name: 'Export', exact: true }).click();
   await page.locator('#lib-split').check();
   const result = page.waitForEvent('download');
   await page.locator('#lib-bundle-go').click();
   const download = await result;
   expect(download.suggestedFilename()).toMatch(/\.zip$/);
   expect((await bytes(download)).subarray(0, 2).toString()).toBe('PK');
+  await page.getByRole('button', { name: 'Close export' }).click();
   await page.locator('button[data-tool="compose"]').click();
   await page.locator('#lib-composer').getByRole('button', { name: '+ Add selected' }).click();
   await expect(page.locator('#lib-composer')).toContainText('Walk Loop');
@@ -205,6 +208,7 @@ test('bundles selected clips into a ZIP and composes body regions', async ({ pag
 
 test('engine skeletons and the Blender template are available', async ({ page }) => {
   await openWorkspace(page);
+  await page.getByRole('button', { name: 'Export', exact: true }).click();
   for (const skeleton of ['ue5', 'ue4', 'mixamo', 'reallusion']) {
     await page.locator('#lib-bundle-skeleton').selectOption(skeleton);
     const format = await page.locator('#lib-bundle-format').inputValue();
@@ -213,6 +217,7 @@ test('engine skeletons and the Blender template are available', async ({ page })
     const data = await bytes(await result);
     expect(data.subarray(0, 4).toString()).toBe(format === 'glb' ? 'glTF' : 'Kayd');
   }
+  await page.getByRole('button', { name: 'Close export' }).click();
   await page.locator('#lib-rig-panel summary').click();
   const result = page.waitForEvent('download');
   await page.getByRole('link', { name: 'Skeleton template (.blend)' }).click();

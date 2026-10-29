@@ -12,8 +12,8 @@ const browser = await chromium.launch({
 try {
   for (const viewport of [{ width: 1600, height: 1000 }, { width: 1280, height: 800 }, { width: 390, height: 844 }]) {
     for (const route of ['', 'motion-lab.html']) {
-      // Narrow Motion Lab layouts intentionally replace the original clipped columns.
-      if (route && viewport.width <= 1100) continue;
+      // The redesigned workspace and narrow Motion Lab have dedicated layout regressions.
+      if (!route || viewport.width <= 1100) continue;
       const snapshots = [];
       for (const [label, origin] of [['reference', 'https://actionforge.app/'], ['recovered', target]]) {
         const context = await browser.newContext({ viewport });

@@ -1,4 +1,10 @@
 import { sitePath } from '../site-path';
+import {
+  ExportDialog,
+  ResourceView,
+  WorkspaceActions,
+  WorkspaceDividers,
+} from './WorkspaceLayout';
 
 export function WorkspaceShell() {
   return (
@@ -30,19 +36,25 @@ export function WorkspaceShell() {
         <span className={'af-spacer'}></span>
         {'\n    \n    '}
         <nav className={'af-links'} id={'af-links'} />
+        <WorkspaceActions />
         {'\n'}
       </header>
       {'\n\n'}
-      <main className={'lib'}>
+      <main className={'lib workspace'} id="workspace">
+        <WorkspaceDividers />
         {'\n\n    \n    \n    '}
-        <aside className={'lib-left'} id={'lib-left'}>
-          {'\n        \n        \n        '}
+        {'\n        \n        \n        '}
+        <div
+          className={'lib-rail'}
+          id={'lib-rail'}
+          role={'group'}
+          aria-label={'Tools'}
+          aria-expanded={'true'}
+        >
           <div
-            className={'lib-rail'}
-            id={'lib-rail'}
-            role={'group'}
-            aria-label={'Tools'}
-            aria-expanded={'true'}
+            className="workspace-toolgroup"
+            role="group"
+            aria-label="Scene tools"
           >
             {'\n            \n            '}
             <button
@@ -92,6 +104,12 @@ export function WorkspaceShell() {
               {'\n            '}
             </button>
             {'\n            '}
+          </div>
+          <div
+            className="workspace-toolgroup"
+            role="group"
+            aria-label="Animation tools"
+          >
             <button
               className={'lib-rail__btn'}
               data-tool={'compose'}
@@ -171,7 +189,9 @@ export function WorkspaceShell() {
               className={'lib-rail__btn'}
               data-tool={'picker'}
               type={'button'}
-              title={'Picker — pick joints on a picture of the body, or of a hand'}
+              title={
+                'Picker — pick joints on a picture of the body, or of a hand'
+              }
             >
               {'\n                '}
               <span className={'lib-rail__icon'} aria-hidden={'true'}>
@@ -182,11 +202,19 @@ export function WorkspaceShell() {
               {'\n            '}
             </button>
             {'\n            '}
+          </div>
+          <div
+            className="workspace-toolgroup"
+            role="group"
+            aria-label="Project tools"
+          >
             <button
               className={'lib-rail__btn'}
               data-tool={'import'}
               type={'button'}
-              title={'Import — bring in a Mixamo FBX. Read on this machine, never uploaded'}
+              title={
+                'Import — bring in a Mixamo FBX. Read on this machine, never uploaded'
+              }
             >
               {'\n                '}
               <span className={'lib-rail__icon'} aria-hidden={'true'}>
@@ -211,9 +239,24 @@ export function WorkspaceShell() {
               <span className={'lib-rail__label'}>{'Projects'}</span>
               {'\n            '}
             </button>
-            {'\n        '}
           </div>
-          {'\n\n        '}
+          {'\n        '}
+        </div>
+        {'\n\n        '}
+        <aside className={'lib-left'} id={'lib-left'} aria-label="Inspector">
+          <div className="workspace-panel-heading">
+            <h2>Inspector</h2>
+            <span>Current selection</span>
+          </div>
+          <div className={'lib-drawer'} id={'lib-drawer'}>
+            <h2 className={'lib-drawer__title'} id={'lib-title'}>
+              ActionForge
+            </h2>
+            <p className={'lib-drawer__meta'} id={'lib-meta'}>
+              Select a clip to play it on the rig.
+            </p>
+            <div className={'lib-drawer__tags'} id={'lib-current-tags'} />
+          </div>
           <div className={'lib-toolpanel'} id={'lib-toolpanel'}>
             {'\n            \n            '}
             <div className={'lib-toolpane'} data-tool={'rig'}>
@@ -290,24 +333,39 @@ export function WorkspaceShell() {
           {'\n        '}
           <div className={'lib-stage'} id={'lib-stage'}>
             {'\n            '}
-            <p className={'lib-hint'}>{'drag to orbit · scroll to zoom · space to play/pause'}</p>
+            <p className={'lib-hint'}>
+              {'drag to orbit · scroll to zoom · space to play/pause'}
+            </p>
             {'\n            \n            \n            '}
             <p className={'lib-credit'} id={'lib-credit'}>
               {'rig by\n                '}
-              <a href={'https://quaternius.com/'} target={'_blank'} rel={'noopener noreferrer'}>
+              <a
+                href={'https://quaternius.com/'}
+                target={'_blank'}
+                rel={'noopener noreferrer'}
+              >
                 {'Quaternius'}
               </a>
               {'\n                '}
               <span>{'·'}</span>
               {' animation by\n                '}
-              <a href={'https://quaternius.com/'} target={'_blank'} rel={'noopener noreferrer'}>
+              <a
+                href={'https://quaternius.com/'}
+                target={'_blank'}
+                rel={'noopener noreferrer'}
+              >
                 {'Quaternius'}
               </a>
               {'\n                '}
               <span>{'CC0'}</span>
             </p>
             {'\n            \n            '}
-            <div className={'lib-status'} id={'lib-status'} role={'status'} aria-live={'polite'}>
+            <div
+              className={'lib-status'}
+              id={'lib-status'}
+              role={'status'}
+              aria-live={'polite'}
+            >
               <p>{'Loading ActionForge…'}</p>
             </div>
             {'\n            '}
@@ -346,7 +404,11 @@ export function WorkspaceShell() {
               {'\n                '}
               <span className={'lib-viewtools__gap'}></span>
               {'\n                '}
-              <span className={'lib-axes'} role={'group'} aria-label={'Shading'}>
+              <span
+                className={'lib-axes'}
+                role={'group'}
+                aria-label={'Shading'}
+              >
                 {'\n                    '}
                 <button
                   className={'lib-btn lib-btn--svg is-on'}
@@ -357,9 +419,18 @@ export function WorkspaceShell() {
                   aria-label={'Colour'}
                 >
                   <svg aria-hidden={'true'} viewBox={'0 0 16 16'}>
-                    <path d={'M8 8 8 2.5A5.5 5.5 0 0 1 12.76 10.75Z'} fill={'#09c5cc'}></path>
-                    <path d={'M8 8 12.76 10.75A5.5 5.5 0 0 1 3.24 10.75Z'} fill={'#e8a33c'}></path>
-                    <path d={'M8 8 3.24 10.75A5.5 5.5 0 0 1 8 2.5Z'} fill={'#d9506b'}></path>
+                    <path
+                      d={'M8 8 8 2.5A5.5 5.5 0 0 1 12.76 10.75Z'}
+                      fill={'#09c5cc'}
+                    ></path>
+                    <path
+                      d={'M8 8 12.76 10.75A5.5 5.5 0 0 1 3.24 10.75Z'}
+                      fill={'#e8a33c'}
+                    ></path>
+                    <path
+                      d={'M8 8 3.24 10.75A5.5 5.5 0 0 1 8 2.5Z'}
+                      fill={'#d9506b'}
+                    ></path>
                   </svg>
                 </button>
                 {'\n                    '}
@@ -372,7 +443,12 @@ export function WorkspaceShell() {
                   aria-label={'Grey'}
                 >
                   <svg aria-hidden={'true'} viewBox={'0 0 16 16'}>
-                    <circle cx={'8'} cy={'8'} r={'5.5'} fill={'#b9bcc1'}></circle>
+                    <circle
+                      cx={'8'}
+                      cy={'8'}
+                      r={'5.5'}
+                      fill={'#b9bcc1'}
+                    ></circle>
                   </svg>
                 </button>
                 {'\n                '}
@@ -459,13 +535,22 @@ export function WorkspaceShell() {
                 >
                   <path d={'M2 5.5h8.5V14H2Z'}></path>
                   <path d={'M5.5 2H14v8.5H5.5Z'}></path>
-                  <path d={'M2 5.5 5.5 2M10.5 5.5 14 2M10.5 14 14 10.5M2 14 5.5 10.5'}></path>
+                  <path
+                    d={
+                      'M2 5.5 5.5 2M10.5 5.5 14 2M10.5 14 14 10.5M2 14 5.5 10.5'
+                    }
+                  ></path>
                 </g>
               </symbol>
               {'\n                '}
               <symbol id={'ic-onion'} viewBox={'0 0 16 16'}>
                 <g fill={'none'} stroke={'currentColor'} strokeWidth={'1.5'}>
-                  <circle cx={'4.5'} cy={'8'} r={'3.4'} opacity={'0.35'}></circle>
+                  <circle
+                    cx={'4.5'}
+                    cy={'8'}
+                    r={'3.4'}
+                    opacity={'0.35'}
+                  ></circle>
                   <circle cx={'8'} cy={'8'} r={'3.4'} opacity={'0.65'}></circle>
                   <circle cx={'11.5'} cy={'8'} r={'3.4'}></circle>
                 </g>
@@ -481,7 +566,12 @@ export function WorkspaceShell() {
                   <circle cx={'8'} cy={'8'} r={'4.6'}></circle>
                   <path d={'M8 1v2M8 13v2M1 8h2M13 8h2'}></path>
                 </g>
-                <circle cx={'8'} cy={'8'} r={'1.6'} fill={'currentColor'}></circle>
+                <circle
+                  cx={'8'}
+                  cy={'8'}
+                  r={'1.6'}
+                  fill={'currentColor'}
+                ></circle>
               </symbol>
               {'\n                '}
               <symbol id={'ic-mirror'} viewBox={'0 0 16 16'}>
@@ -493,7 +583,11 @@ export function WorkspaceShell() {
                 >
                   <path d={'M6 3.5 1.5 12.5H6Z'}></path>
                   <path d={'M10 3.5 14.5 12.5H10Z'}></path>
-                  <path d={'M8 1.5v13'} strokeDasharray={'1.6 1.6'} strokeWidth={'1.2'}></path>
+                  <path
+                    d={'M8 1.5v13'}
+                    strokeDasharray={'1.6 1.6'}
+                    strokeWidth={'1.2'}
+                  ></path>
                 </g>
               </symbol>
               {'\n                '}
@@ -519,7 +613,13 @@ export function WorkspaceShell() {
                 >
                   <circle cx={'8'} cy={'3.2'} r={'1.7'}></circle>
                   <path d={'M8 5.5v4.5M8 10 6 12.5M8 10l2 2.5'}></path>
-                  <ellipse cx={'8'} cy={'14'} rx={'5.5'} ry={'1.3'} strokeWidth={'1.2'}></ellipse>
+                  <ellipse
+                    cx={'8'}
+                    cy={'14'}
+                    rx={'5.5'}
+                    ry={'1.3'}
+                    strokeWidth={'1.2'}
+                  ></ellipse>
                 </g>
               </symbol>
               {'\n                '}
@@ -530,7 +630,11 @@ export function WorkspaceShell() {
                   strokeWidth={'1.5'}
                   strokeLinecap={'square'}
                 >
-                  <path d={'M2 5.5V2h3.5M10.5 2H14v3.5M14 10.5V14h-3.5M5.5 14H2v-3.5'}></path>
+                  <path
+                    d={
+                      'M2 5.5V2h3.5M10.5 2H14v3.5M14 10.5V14h-3.5M5.5 14H2v-3.5'
+                    }
+                  ></path>
                   <path d={'M6 6h4v4H6Z'}></path>
                 </g>
               </symbol>
@@ -641,7 +745,12 @@ export function WorkspaceShell() {
             </select>
             {'\n\n            \n            '}
             <label className={'lib-check lib-check--icon'} title={'Loop'}>
-              <input id={'lib-loop'} type={'checkbox'} defaultChecked aria-label={'Loop'} />
+              <input
+                id={'lib-loop'}
+                type={'checkbox'}
+                defaultChecked
+                aria-label={'Loop'}
+              />
               <svg aria-hidden={'true'}>
                 <use href={'#ic-loop'}></use>
               </svg>
@@ -673,7 +782,9 @@ export function WorkspaceShell() {
                 id={'lib-onion'}
                 type={'button'}
                 aria-pressed={'false'}
-                title={'Onion skin: ghosts of the frames before and after this one'}
+                title={
+                  'Onion skin: ghosts of the frames before and after this one'
+                }
                 aria-label={'Onion skin'}
               >
                 <svg aria-hidden={'true'}>
@@ -724,7 +835,9 @@ export function WorkspaceShell() {
                 className={'lib-btn lib-btn--svg'}
                 id={'lib-reverse'}
                 type={'button'}
-                title={'Reverse: play it backwards — the keys flipped, the root with them'}
+                title={
+                  'Reverse: play it backwards — the keys flipped, the root with them'
+                }
                 aria-label={'Reverse'}
               >
                 <svg aria-hidden={'true'}>
@@ -791,7 +904,9 @@ export function WorkspaceShell() {
                 className={'lib-btn lib-btn--axis'}
                 data-axis={'yaw'}
                 type={'button'}
-                title={'Lock turning: an animation that ends up turned faces one way throughout'}
+                title={
+                  'Lock turning: an animation that ends up turned faces one way throughout'
+                }
               >
                 {'YAW'}
               </button>
@@ -815,60 +930,15 @@ export function WorkspaceShell() {
         </section>
         {'\n\n    \n    '}
         <div className={'lib-right'}>
-          {'\n\n        \n    '}
-          <aside className={'lib-drawer'} id={'lib-drawer'}>
-            {'\n        '}
-            <div className={'lib-drawer__block'}>
-              {'\n            '}
-              <h2 className={'lib-drawer__title'} id={'lib-title'}>
-                {'ActionForge'}
-              </h2>
-              {'\n            '}
-              <p className={'lib-drawer__meta'} id={'lib-meta'}>
-                {'Select a clip to play it on the rig.'}
-              </p>
-              {'\n            '}
-              <div className={'lib-drawer__tags'} id={'lib-current-tags'}></div>
-              {'\n        '}
-            </div>
-            {'\n\n        '}
-            <div className={'lib-drawer__block'}>
-              {'\n            '}
-              <h3 className={'lib-drawer__head'}>{'Filter by tag'}</h3>
-              {'\n            '}
-              <div className={'lib-chips'} id={'lib-chips'}></div>
-              {'\n            '}
-              <p className={'lib-drawer__hint'} id={'lib-chips-empty'}>
-                {'No tags authored yet.'}
-              </p>
-              {'\n        '}
-            </div>
-            {'\n\n        '}
-            <div className={'lib-drawer__block'}>
-              {'\n            '}
-              <h3 className={'lib-drawer__head'}>{'Display'}</h3>
-              {'\n            '}
-              <label className={'lib-check'}>
-                <input id={'lib-group'} type={'checkbox'} />
-                {' Group by category'}
-              </label>
-              {'\n        '}
-            </div>
-            {'\n\n    '}
-          </aside>
-          {'\n\n        '}
-          <button
-            className={'lib-handle'}
-            id={'lib-handle'}
-            type={'button'}
-            aria-controls={'lib-drawer'}
-            aria-expanded={'true'}
-            title={'Toggle details panel'}
+          <aside
+            className={'lib-panel'}
+            id="workspace-resources"
+            aria-label="Resources"
           >
-            {'‹'}
-          </button>
-          {'\n\n    '}
-          <aside className={'lib-panel'}>
+            <div className="workspace-panel-heading">
+              <h2>Resources</h2>
+              <ResourceView />
+            </div>
             {'\n        '}
             <div className={'lib-panel__head'}>
               {'\n            \n            '}
@@ -917,6 +987,16 @@ export function WorkspaceShell() {
               <span className={'lib-count'} id={'lib-count'}>
                 {'—'}
               </span>
+              <details className="workspace-filters" open>
+                <summary>Filter &amp; display</summary>
+                <div className={'lib-chips'} id={'lib-chips'} />
+                <p className={'lib-drawer__hint'} id={'lib-chips-empty'}>
+                  No tags authored yet.
+                </p>
+                <label className={'lib-check'}>
+                  <input id={'lib-group'} type={'checkbox'} /> Group by category
+                </label>
+              </details>
               {'\n        '}
             </div>
             {'\n\n        '}
@@ -924,129 +1004,154 @@ export function WorkspaceShell() {
             {'\n        \n        '}
             <div className={'lib-poses'} id={'lib-poses'} hidden></div>
             {'\n        '}
-            <div className={'lib-grid lib-chargrid'} id={'lib-chargrid'} hidden></div>
-            {'\n\n        \n        '}
-            <div className={'lib-dock'} id={'lib-bundle'}>
-              {'\n            '}
-              <div className={'lib-dock__row'}>
-                {'\n                '}
-                <span className={'lib-dock__count'} id={'lib-bundle-count'}>
-                  {'Nothing selected'}
-                </span>
-                {'\n                '}
-                <button className={'lib-btn lib-btn--sm'} id={'lib-bundle-all'} type={'button'}>
-                  {'All'}
-                </button>
-                {'\n                '}
-                <button className={'lib-btn lib-btn--sm'} id={'lib-bundle-clear'} type={'button'}>
-                  {'Clear'}
-                </button>
-                {'\n            '}
-              </div>
-              {'\n            '}
-              <label className={'lib-check'}>
-                <input id={'lib-bundle-rig'} type={'checkbox'} defaultChecked />
-                {' Include character mesh'}
-              </label>
-              {'\n            \n            '}
-              <label className={'lib-check'} id={'lib-inplace-row'}>
-                <input id={'lib-inplace'} type={'checkbox'} />
-                {' In place '}
-                <span className={'lib-axes-tag'} id={'lib-axes-tag'}></span>
-              </label>
-              {'\n            \n            '}
-              <label
-                className={'lib-check is-disabled'}
-                id={'lib-split-row'}
-                title={'Select two or more clips to get one file per clip'}
-              >
-                <input id={'lib-split'} type={'checkbox'} disabled />
-                {' One file per clip (.zip)'}
-              </label>
-              {'\n            \n            '}
-              <div className={'lib-dock__row lib-dock__row--fmt'}>
-                {'\n                '}
-                <label className={'lib-dock__fmt'}>
-                  {'Format\n                    '}
-                  <select id={'lib-bundle-format'}>
-                    {'\n                        '}
-                    <option value={'glb'}>{'GLB'}</option>
-                    {'\n                        '}
-                    <option value={'fbx'}>{'FBX'}</option>
-                    {'\n                    '}
-                  </select>
-                  {'\n                '}
-                </label>
-                {'\n                \n                '}
-                <label className={'lib-dock__fmt'} id={'lib-fbx-target-row'}>
-                  {'Units\n                    '}
-                  <select id={'lib-bundle-target'}></select>
-                  {'\n                '}
-                </label>
-                {'\n                \n                \n                '}
-                <div className={'lib-dock__stack'}>
-                  {'\n                    '}
-                  <label className={'lib-dock__fmt'} id={'lib-mannequin-row'} hidden>
-                    {'Mannequin\n                        '}
-                    <select id={'lib-bundle-mannequin'}>
-                      {'\n                            '}
-                      <option value={'ue5'}>{'Manny'}</option>
-                      {'\n                            '}
-                      <option value={'ue5-quinn'}>{'Quinn'}</option>
-                      {'\n                        '}
-                    </select>
-                    {'\n                    '}
-                  </label>
-                  {'\n                    '}
-                  <label className={'lib-dock__fmt'}>
-                    {'Skeleton\n                        '}
-                    <select id={'lib-bundle-skeleton'}>
-                      {'\n                            '}
-                      <option value={'default'}>{'Default'}</option>
-                      {'\n                            '}
-                      <option value={'ue5'}>{'Unreal Engine 5'}</option>
-                      {'\n                            '}
-                      <option value={'ue4'}>{'Unreal Engine 4'}</option>
-                      {'\n                            '}
-                      <option value={'reallusion'}>{'Reallusion (CC / ActorCore)'}</option>
-                      {'\n                            '}
-                      <option value={'mixamo'}>{'Mixamo'}</option>
-                      {'\n                        '}
-                    </select>
-                    {'\n                    '}
-                  </label>
-                  {'\n                '}
-                </div>
-                {'\n            '}
-              </div>
-              {'\n            '}
+            <div
+              className={'lib-grid lib-chargrid'}
+              id={'lib-chargrid'}
+              hidden
+            ></div>
+            <div className="workspace-resource-footer">
               <button
-                className={'lib-btn lib-btn--go'}
-                id={'lib-bundle-go'}
-                type={'button'}
-                disabled
+                className="lib-btn"
+                id="lib-save-mine"
+                type="button"
+                title="Keep what is on screen with your animations, under a name"
               >
-                {'↓ Download bundle'}
+                Save to my animations
               </button>
-              {'\n            \n            '}
-              <button
-                className={'lib-btn'}
-                id={'lib-save-mine'}
-                type={'button'}
-                title={'Keep what is on screen with your animations, under a name'}
-              >
-                {'Save to my animations'}
-              </button>
-              {'\n            \n            '}
-              <button className={'lib-btn'} id={'lib-bundle-rest'} type={'button'}>
-                {'↓ Character only (rest pose)'}
-              </button>
-              {'\n        '}
             </div>
-            {'\n    '}
+            {'\n\n        \n        '}
           </aside>
-          {'\n    '}
         </div>
+        <ExportDialog>
+          <div className={'lib-dock'} id={'lib-bundle'}>
+            {'\n            '}
+            <div className={'lib-dock__row'}>
+              {'\n                '}
+              <span className={'lib-dock__count'} id={'lib-bundle-count'}>
+                {'Nothing selected'}
+              </span>
+              {'\n                '}
+              <button
+                className={'lib-btn lib-btn--sm'}
+                id={'lib-bundle-all'}
+                type={'button'}
+              >
+                {'All'}
+              </button>
+              {'\n                '}
+              <button
+                className={'lib-btn lib-btn--sm'}
+                id={'lib-bundle-clear'}
+                type={'button'}
+              >
+                {'Clear'}
+              </button>
+              {'\n            '}
+            </div>
+            {'\n            '}
+            <label className={'lib-check'}>
+              <input id={'lib-bundle-rig'} type={'checkbox'} defaultChecked />
+              {' Include character mesh'}
+            </label>
+            {'\n            \n            '}
+            <label className={'lib-check'} id={'lib-inplace-row'}>
+              <input id={'lib-inplace'} type={'checkbox'} />
+              {' In place '}
+              <span className={'lib-axes-tag'} id={'lib-axes-tag'}></span>
+            </label>
+            {'\n            \n            '}
+            <label
+              className={'lib-check is-disabled'}
+              id={'lib-split-row'}
+              title={'Select two or more clips to get one file per clip'}
+            >
+              <input id={'lib-split'} type={'checkbox'} disabled />
+              {' One file per clip (.zip)'}
+            </label>
+            {'\n            \n            '}
+            <div className={'lib-dock__row lib-dock__row--fmt'}>
+              {'\n                '}
+              <label className={'lib-dock__fmt'}>
+                {'Format\n                    '}
+                <select id={'lib-bundle-format'}>
+                  {'\n                        '}
+                  <option value={'glb'}>{'GLB'}</option>
+                  {'\n                        '}
+                  <option value={'fbx'}>{'FBX'}</option>
+                  {'\n                    '}
+                </select>
+                {'\n                '}
+              </label>
+              {'\n                \n                '}
+              <label className={'lib-dock__fmt'} id={'lib-fbx-target-row'}>
+                {'Units\n                    '}
+                <select id={'lib-bundle-target'}></select>
+                {'\n                '}
+              </label>
+              {'\n                \n                \n                '}
+              <div className={'lib-dock__stack'}>
+                {'\n                    '}
+                <label
+                  className={'lib-dock__fmt'}
+                  id={'lib-mannequin-row'}
+                  hidden
+                >
+                  {'Mannequin\n                        '}
+                  <select id={'lib-bundle-mannequin'}>
+                    {'\n                            '}
+                    <option value={'ue5'}>{'Manny'}</option>
+                    {'\n                            '}
+                    <option value={'ue5-quinn'}>{'Quinn'}</option>
+                    {'\n                        '}
+                  </select>
+                  {'\n                    '}
+                </label>
+                {'\n                    '}
+                <label className={'lib-dock__fmt'}>
+                  {'Skeleton\n                        '}
+                  <select id={'lib-bundle-skeleton'}>
+                    {'\n                            '}
+                    <option value={'default'}>{'Default'}</option>
+                    {'\n                            '}
+                    <option value={'ue5'}>{'Unreal Engine 5'}</option>
+                    {'\n                            '}
+                    <option value={'ue4'}>{'Unreal Engine 4'}</option>
+                    {'\n                            '}
+                    <option value={'reallusion'}>
+                      {'Reallusion (CC / ActorCore)'}
+                    </option>
+                    {'\n                            '}
+                    <option value={'mixamo'}>{'Mixamo'}</option>
+                    {'\n                        '}
+                  </select>
+                  {'\n                    '}
+                </label>
+                {'\n                '}
+              </div>
+              {'\n            '}
+            </div>
+            {'\n            '}
+            <button
+              className={'lib-btn lib-btn--go'}
+              id={'lib-bundle-go'}
+              type={'button'}
+              disabled
+            >
+              {'↓ Download bundle'}
+            </button>
+            {'\n            \n            '}
+            {'\n            \n            '}
+            <button
+              className={'lib-btn'}
+              id={'lib-bundle-rest'}
+              type={'button'}
+            >
+              {'↓ Character only (rest pose)'}
+            </button>
+            {'\n        '}
+          </div>
+        </ExportDialog>
+        {'\n    '}
         {'\n\n    \n    \n    '}
         <section
           className={'lib-seq'}

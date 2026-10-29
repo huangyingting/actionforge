@@ -56,12 +56,22 @@ complete offline access. Only the default library seeds are fetched automaticall
 Motion Lab uses panel navigation on screens at most 1100 pixels wide; desktop
 layout remains unchanged. Preview resolution is capped at device pixel ratio 2.
 Support, FAQ and news dialogs contain keyboard focus and restore it on close.
+The workspace intentionally differs from the original layout: Resources at
+left, a single active Inspector at right, and the timeline under the center
+viewport only. Side panels retain their full height when the timeline opens.
+WorkspaceLayout.tsx owns persisted panel sizes, visibility and focus modes;
+workspace.css scopes the redesign without changing the Motion Lab stylesheet.
+Export uses a native modal dialog rather than a permanent library footer.
+Narrow windows use explicit panel toggles; compact resource lists are optional.
+Save project and its saved/unsaved state are visible in the header; storage
+failures appear in the status bar even when the Projects inspector is closed.
+Saving an animation to Resources remains separate from the export dialog.
 Browser checks use Google Chrome at /usr/bin/google-chrome by default.
 Set CHROME_PATH to use another installed Chromium executable.
 Regression checks include aborted writes, storage recovery, service-worker
 upgrades, playable frame-by-frame WebM encoding, modal focus and mobile panels.
-npm run compare-ui checks original layout parity except the intentionally
-improved narrow-screen Motion Lab, which is covered by browser regressions.
+npm run compare-ui checks original desktop Motion Lab layout parity. The
+redesigned workspace and narrow Motion Lab use browser layout regressions.
 The GitHub Actions workflow builds and publishes out/ on pushes to main.
 The normal build needs no access to actionforge.app or Git history.
 Optional forensic tools are not build prerequisites: reconstruct.ts takes an

@@ -2347,7 +2347,8 @@ function Gc({ rail: D3, panel: D4, onChange: D5 = () => {} }) {
   for (let DV of D6)
     DV.addEventListener('click', () => {
       let DD = DV.dataset.tool;
-      (D9.has(DD) ? D9.delete(DD) : D9.add(DD), Dk());
+      if (D9.has(DD)) return;
+      (D9.clear(), D9.add(DD), Dk());
     });
   let Dw = [D8[0]];
   try {
@@ -2356,7 +2357,7 @@ function Gc({ rail: D3, panel: D4, onChange: D5 = () => {} }) {
     else {
       if (DD) {
         let Dm = DD.split(',').filter((DS) => D8.includes(DS));
-        Dm.length && (Dw = Dm);
+        Dm.length && (Dw = [Dm.at(-1)]);
       }
     }
   } catch {}
@@ -2366,7 +2367,8 @@ function Gc({ rail: D3, panel: D4, onChange: D5 = () => {} }) {
     {
       get: () => [...D9],
       show: (DE) => {
-        D8.includes(DE) && !D9.has(DE) && (D9.add(DE), Dk());
+        D8.includes(DE) && !D9.has(DE) && (D9.clear(), D9.add(DE), Dk());
+        document.dispatchEvent(new CustomEvent('af:layout', { detail: { inspector: true, focus: 'normal' } }));
       },
       hide: (DE) => {
         D9.delete(DE) && Dk();
@@ -3806,6 +3808,7 @@ function cd({
   let Dx = null,
     Dy = null;
   function DW(DB) {
+    document.dispatchEvent(new CustomEvent('af:project-notice', { detail: DB }));
     Dx &&
       ((Dx.textContent = DB),
       (Dx.hidden = !1),
@@ -3842,6 +3845,9 @@ function cd({
     Dy.innerHTML = '';
     let DB = Dt && De(Dt),
       DG = DQ();
+    document.dispatchEvent(new CustomEvent('af:project-status', {
+      detail: { name: DB ? DB.name : 'Untitled scene', status: DB ? (DG ? 'Unsaved changes' : 'Saved locally') : 'Not saved' },
+    }));
     (Dy.classList.toggle('is-dirty', DG),
       Dy.appendChild(DH('span', 'lib-proj__cur-dot', DG ? '\u25CF' : '')),
       Dy.appendChild(DH('span', 'lib-proj__cur-name', DB ? DB.name : 'Untitled scene')),
@@ -9238,7 +9244,13 @@ function Kd({
     };
   D3.innerHTML = '';
   let DY = DP('div', 'lib-seq__grip');
-  ((DY.title = 'Drag to resize'), D3.appendChild(DY));
+  ((DY.title = 'Drag to resize, or use Up and Down'),
+    DY.setAttribute('role', 'separator'),
+    DY.setAttribute('aria-label', 'Timeline height'),
+    DY.setAttribute('aria-orientation', 'horizontal'),
+    DY.setAttribute('aria-valuemin', String(qd)),
+    (DY.tabIndex = 0),
+    D3.appendChild(DY));
   let Dv = DP('div', 'lib-seq__bar'),
     DB = DP('button', 'lib-btn lib-btn--play', '\u25B6');
   ((DB.type = 'button'), DB.addEventListener('click', () => D6()));
@@ -9384,6 +9396,8 @@ function Kd({
     let r2 = Math.max(qd, Math.round(window.innerHeight * (mE === 'graph' ? 0.8 : 0.6))),
       r3 = Math.min(r2, Math.max(qd, Math.round(r1)));
     D3.style.height = r3 + 'px';
+    DY.setAttribute('aria-valuenow', String(r3));
+    DY.setAttribute('aria-valuemax', String(r2));
     try {
       localStorage.setItem(mq(), String(r3));
     } catch {}
@@ -9445,10 +9459,17 @@ function Kd({
       r4 = (r6) => mP(r3 + (r2 - r6.clientY)),
       r5 = () => {
         (DY.removeEventListener('pointermove', r4),
-          DY.removeEventListener('pointerup', r5),
+          DY.removeEventListener('lostpointercapture', r5),
           window.dispatchEvent(new Event('resize')));
       };
-    (DY.addEventListener('pointermove', r4), DY.addEventListener('pointerup', r5));
+    (DY.addEventListener('pointermove', r4), DY.addEventListener('lostpointercapture', r5));
+  });
+  DY.addEventListener('keydown', (event) => {
+    if (!['ArrowUp', 'ArrowDown', 'Home'].includes(event.key)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    mP(event.key === 'Home' ? 280 : D3.clientHeight + (event.key === 'ArrowUp' ? 24 : -24));
+    window.dispatchEvent(new Event('resize'));
   });
   let mB = () => Dq.duration * (1 + xp);
   function mG() {
@@ -22957,83 +22978,12 @@ var $o = 'assets/animation-library',
     group: Rt('lib-group'),
     currentTags: Rt('lib-current-tags'),
     drawer: Rt('lib-drawer'),
-    handle: Rt('lib-handle'),
     seq: Rt('lib-seq'),
     strips: Rt('lib-strips'),
     undo: Rt('lib-undo'),
     redo: Rt('lib-redo'),
     share: Rt('lib-share'),
   };
-{
-  let e = document.getElementById('lib-toolpanel'),
-    t = 'cgstuff.library.toolpanelWidth',
-    n = document.createElement('div');
-  ((n.className = 'lib-toolpanel__grip'),
-    (n.title = 'Drag to widen the panel \u00B7 double-click for its usual width'),
-    n.setAttribute('role', 'separator'),
-    n.setAttribute('aria-orientation', 'vertical'),
-    n.setAttribute('aria-label', 'Panel width'),
-    e?.after(n));
-  let i = (D3) => {
-    D3 ? (e.style.width = Math.round(D3) + 'px') : e.style.removeProperty('width');
-  };
-  try {
-    let l = Number(localStorage.getItem(t));
-    l > 0 && i(l);
-  } catch {}
-  (n.addEventListener('pointerdown', (D3) => {
-    (D3.preventDefault(), n.setPointerCapture(D3.pointerId), n.classList.add('is-dragging'));
-    let D4 = parseFloat(getComputedStyle(e).zoom) || 1,
-      D5 = D3.clientX,
-      D6 = e.getBoundingClientRect().width / D4,
-      D7 = D6,
-      D8 = (Dk) => {
-        ((D7 = Math.min(Math.max(D6 + (Dk.clientX - D5) / D4, 180), (innerWidth * 0.6) / D4)),
-          i(D7));
-      },
-      D9 = () => {
-        (n.classList.remove('is-dragging'),
-          n.removeEventListener('pointermove', D8),
-          n.removeEventListener('pointerup', D9),
-          n.removeEventListener('pointercancel', D9));
-        try {
-          localStorage.setItem(t, String(Math.round(D7)));
-        } catch {}
-      };
-    (n.addEventListener('pointermove', D8),
-      n.addEventListener('pointerup', D9),
-      n.addEventListener('pointercancel', D9));
-  }),
-    n.addEventListener('dblclick', () => {
-      i(0);
-      try {
-        localStorage.removeItem(t);
-      } catch {}
-    }));
-}
-var hf = 'cgstuff.library.drawerOpen.v2',
-  Lh = '(min-width: 1500px)';
-function pf(D3, D4 = !1) {
-  if (
-    (pe.drawer.classList.toggle('is-closed', !D3),
-    (pe.handle.textContent = D3 ? '\u2039' : '\u203A'),
-    pe.handle.setAttribute('aria-expanded', String(D3)),
-    (pe.handle.title = D3 ? 'Hide details' : 'Show details'),
-    D4)
-  )
-    try {
-      localStorage.setItem(hf, D3 ? '1' : '0');
-    } catch {}
-}
-(function () {
-  let D3 = matchMedia(Lh).matches;
-  try {
-    let D4 = localStorage.getItem(hf);
-    D4 !== null && (D3 = D4 === '1');
-  } catch {}
-  (pf(D3),
-    pe.handle.addEventListener('click', () => pf(pe.drawer.classList.contains('is-closed'), !0)));
-})();
 var Oh = (D3) => Math.floor(D3) + '.' + String(Math.floor((D3 % 1) * 100)).padStart(2, '0') + 's',
   mf = 'cgstuff.library.timeUnit',
   Rs = 'sec';
@@ -23055,6 +23005,7 @@ function yo(
     retryLabel: D8 = 'Retry',
   } = {},
 ) {
+  if (D4) document.getElementById('workspace-export')?.close();
   ((pe.status.hidden = !1), pe.status.classList.toggle('is-error', D4), (pe.status.innerHTML = ''));
   let D9 = document.createElement('p');
   if (((D9.textContent = D3), pe.status.appendChild(D9), D6)) {
@@ -26357,6 +26308,7 @@ async function initializeWorkspace() {
     let E9 = localStorage.getItem(Sg);
     (E9 === 'chars' || E9 === 'poses') && rR(E9);
   } catch {}
+  document.addEventListener('af:save-project', () => { Dw || DT?.save(); });
   window.addEventListener('keydown', (Ek) => {
     if (
       (Ek.ctrlKey || Ek.metaKey) &&
