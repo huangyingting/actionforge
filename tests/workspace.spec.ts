@@ -273,8 +273,8 @@ test('header omits removed links while support content remains available locally
   await expect(header).not.toContainText(/Animations CC0|Code © CGstuff|Licences|Support|❤|FAQ|What’s new|CGstuff|·/);
   await expect(header.locator('#af-faq, #af-news, #af-support, .af-licence')).toHaveCount(0);
   await expect(header.getByRole('link', { name: /Motion Lab/ })).toBeVisible();
-  await expect(header.getByRole('link', { name: 'ActionForge on Discord' })).toBeVisible();
-  await expect(header.getByRole('link', { name: 'CGstuff on YouTube' })).toBeVisible();
+  await expect(header.getByRole('link', { name: /Discord|YouTube/i })).toHaveCount(0);
+  await expect(header.locator('a[href*="discord"], a[href*="youtube"]')).toHaveCount(0);
   await page.goto('support');
   await expect(page.locator('#af-support-here')).toContainText('ActionForge is free.');
   await expect(page.locator('#af-support-here')).not.toContainText('Loading…');
