@@ -267,19 +267,14 @@ test('share links restore the selected animation and adjustments without a backe
   await otherContext.close();
 });
 
-test('FAQ, news and support content are available locally', async ({ page }) => {
+test('header omits removed links while support content remains available locally', async ({ page }) => {
   await openWorkspace(page);
-  for (const id of ['af-faq', 'af-news', 'af-support']) {
-    await page.locator(`#${id}`).click();
-    await expect(page.getByRole('dialog')).toBeVisible();
-    for (let step = 0; step < 5; step++) {
-      await page.keyboard.press(step % 2 ? 'Tab' : 'Shift+Tab');
-      expect(await page.evaluate(() => !!document.activeElement?.closest('[role="dialog"]'))).toBe(true);
-    }
-    await page.keyboard.press('Escape');
-    await expect(page.locator(`#${id}`)).toBeFocused();
-    await expect(page.locator('header')).not.toHaveAttribute('inert');
-  }
+  const header = page.locator('header');
+  await expect(header).not.toContainText(/Animations CC0|Code © CGstuff|Licences|Support|❤|FAQ|What’s new|CGstuff|·/);
+  await expect(header.locator('#af-faq, #af-news, #af-support, .af-licence')).toHaveCount(0);
+  await expect(header.getByRole('link', { name: /Motion Lab/ })).toBeVisible();
+  await expect(header.getByRole('link', { name: 'ActionForge on Discord' })).toBeVisible();
+  await expect(header.getByRole('link', { name: 'CGstuff on YouTube' })).toBeVisible();
   await page.goto('support');
   await expect(page.locator('#af-support-here')).toContainText('ActionForge is free.');
   await expect(page.locator('#af-support-here')).not.toContainText('Loading…');

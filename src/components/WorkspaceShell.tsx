@@ -29,66 +29,7 @@ export function WorkspaceShell() {
         {'\n    '}
         <span className={'af-spacer'}></span>
         {'\n    \n    '}
-        <span className={'af-licence'}>
-          {'\n        '}
-          <a
-            href={'https://creativecommons.org/publicdomain/zero/1.0/'}
-            rel={'noopener'}
-            title={
-              'The animations here are in the public domain (CC0): use them anywhere, commercially, with no attribution required. Hover an animation to see who made it. Those by Quaternius are from the free versions of his Universal Animation Library packs.'
-            }
-          >
-            {'Animations CC0'}
-          </a>
-          {'\n        '}
-          <i aria-hidden={'true'}>{'·'}</i>
-          {'\n        '}
-          <span title={'The application and its source are not open. All rights reserved.'}>
-            {'Code © CGstuff'}
-          </span>
-          {'\n        '}
-          <i aria-hidden={'true'}>{'·'}</i>
-          {'\n        \n        '}
-          <a
-            href={sitePath('THIRD-PARTY-NOTICES.txt')}
-            title={
-              'Licences in full, including the MIT notices for the libraries this tool is built on.'
-            }
-          >
-            {'Licences'}
-          </a>
-          {'\n    '}
-        </span>
-        {'\n\n    '}
         <nav className={'af-links'} id={'af-links'}>
-          {'\n        \n        '}
-          <button
-            className={'af-lab af-supportlink'}
-            id={'af-support'}
-            type={'button'}
-            title={'Support ActionForge'}
-          >
-            {'Support '}
-            <span aria-hidden={'true'}>{'❤'}</span>
-          </button>
-          {'\n        \n        '}
-          <button
-            className={'af-news'}
-            id={'af-faq'}
-            type={'button'}
-            title={'Frequently asked questions'}
-          >
-            {'FAQ'}
-          </button>
-          {'\n        \n        '}
-          <button
-            className={'af-news'}
-            id={'af-news'}
-            type={'button'}
-            title={'What’s new on ActionForge'}
-          >
-            {'What’s new'}
-          </button>
           {'\n        \n        '}
           <a
             className={'af-discord'}
@@ -148,9 +89,6 @@ export function WorkspaceShell() {
             {'\n        '}
           </a>
           {'\n        '}
-          <a href={'https://cgstuff.xyz'} rel={'noopener'}>
-            {'CGstuff'}
-          </a>
           {'\n    '}
         </nav>
         {'\n'}
