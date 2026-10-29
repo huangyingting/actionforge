@@ -24,6 +24,20 @@
    Two files, 30 KB, latin only. The page used to request five weights of
    Rajdhani and three of Orbitron — and not one rule referenced Orbitron. */
 @font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url('../fonts/inter-var-latin.woff2') format('woff2-variations');
+}
+@font-face {
+    font-family: 'JetBrains Mono';
+    font-style: normal;
+    font-weight: 100 800;
+    font-display: swap;
+    src: url('../fonts/jetbrains-mono-var-latin.woff2') format('woff2-variations');
+}
+@font-face {
     font-family: 'Rajdhani';
     font-style: normal;
     font-weight: 400;
@@ -52,24 +66,24 @@
 }
 
 :root {
-    --primary-color: #09c5cc;
-    --secondary-color: #7d0093;
-    --accent-color: #001b87;
+    --primary-color: #22d3ee;
+    --secondary-color: #818cf8;
+    --accent-color: #0284c7;
 
-    --bg-dark: #0a0a0a;
-    --bg-medium: #111;
-    --bg-light: #1a1a1a;
+    --bg-dark: #090c11;
+    --bg-medium: #10141d;
+    --bg-light: #181e2b;
 
-    --text-primary: #fff;
-    --text-secondary: #ccc;
-    --text-muted: #999;
-    --border-color: #333;
+    --text-primary: #f1f5f9;
+    --text-secondary: #cbd5e1;
+    --text-muted: #7f8ea3;
+    --border-color: #232c3d;
 
-    --font-primary: 'Rajdhani', 'Arial', sans-serif;
-    --font-heading: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace;
-    /* The wordmark only. Wide, geometric, and unreadable at body size — which
-       is why it is a separate token rather than a heading font. */
-    --font-display: 'Orbitron', 'Rajdhani', 'Arial', sans-serif;
+    --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-heading: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace;
+    /* Clean compact geometric display stack */
+    --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
     --transition-fast: 0.1s ease;
     --transition-medium: 0.3s ease;
