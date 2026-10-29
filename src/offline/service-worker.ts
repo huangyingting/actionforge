@@ -3,9 +3,11 @@
 declare const __BUILD_VERSION__: string;
 declare const __SHELL_FILES__: string[];
 declare const __LIBRARY_SEED__: string[];
+declare const __LIBRARY_HASHES__: Record<string, string>;
 const worker = globalThis as unknown as ServiceWorkerGlobalScope;
 const shellCache = `af-shell-${__BUILD_VERSION__}`;
 const libraryCache = 'af-library';
+const metadataCache = 'af-library-meta';
 const resolve = (resource: string) => new URL(resource, worker.registration.scope).href;
 
 async function precache(cacheName: string, resources: string[], required: boolean) {
@@ -30,13 +32,25 @@ worker.addEventListener('install', (event) => {
   event.waitUntil(
     (async () => {
       await precache(shellCache, __SHELL_FILES__, true);
-      await precache(libraryCache, __LIBRARY_SEED__, false);
     })(),
   );
 });
 worker.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
+      const library = await caches.open(libraryCache);
+      const metadata = await caches.open(metadataCache);
+      const metadataURL = resolve('library-revision.json');
+      const previous = await metadata.match(metadataURL);
+      const hashes: Record<string, string> = previous ? await previous.json().catch(() => ({})) : {};
+      for (const request of await library.keys()) {
+        const relative = new URL(request.url).pathname.slice(new URL(worker.registration.scope).pathname.length);
+        if (!__LIBRARY_HASHES__[relative] || hashes[relative] !== __LIBRARY_HASHES__[relative]) {
+          await library.delete(request);
+        }
+      }
+      await metadata.put(metadataURL, Response.json(__LIBRARY_HASHES__));
+      await precache(libraryCache, __LIBRARY_SEED__, false);
       for (const name of await caches.keys()) {
         if (name.startsWith('af-shell-') && name !== shellCache) await caches.delete(name);
       }
@@ -50,7 +64,8 @@ worker.addEventListener('message', (event) => {
     event.ports[0]?.postMessage({ version: __BUILD_VERSION__ });
 });
 
-async function respond(request: Request, relative: string) {
+async function respond(event: FetchEvent, relative: string) {
+  const request = event.request;
   const shell = await caches.open(shellCache);
   if (request.mode === 'navigate') {
     const page =
@@ -69,11 +84,11 @@ async function respond(request: Request, relative: string) {
   if (stored) return stored;
   const response = await fetch(request);
   if (response.ok && response.status === 200) {
-    void library.put(request.url, response.clone()).catch(() => undefined);
+    event.waitUntil(library.put(request.url, response.clone()).catch(() => undefined));
   } else if (response.status === 206) {
-    void fetch(request.url)
+    event.waitUntil(fetch(request.url)
       .then((full) => (full.status === 200 ? library.put(request.url, full) : undefined))
-      .catch(() => undefined);
+      .catch(() => undefined));
   }
   return response;
 }
@@ -89,5 +104,5 @@ worker.addEventListener('fetch', (event) => {
     return;
   const relative = url.pathname.slice(scope.pathname.length);
   if (/^(?:api\/|s\/|sw\.js$|version\.json$)/.test(relative)) return;
-  event.respondWith(respond(event.request, relative));
+  event.respondWith(respond(event, relative));
 });

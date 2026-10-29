@@ -4,26 +4,33 @@ var P = 'cgstuff-own-poses',
   m = 'cgstuff-own-poses',
   b = null,
   C = () =>
-    (b ??= new Promise((S) => {
+    (b ??= new Promise((S, reject) => {
       try {
         let r = indexedDB.open(P, 1);
         ((r.onupgradeneeded = () => r.result.createObjectStore(g, { keyPath: 'id' })),
-          (r.onsuccess = () => S(r.result)),
-          (r.onerror = r.onblocked = () => S(null)));
-      } catch {
-        S(null);
+          (r.onsuccess = () => {
+            r.result.onversionchange = () => { r.result.close(); b = null; };
+            S(r.result);
+          }),
+          (r.onerror = r.onblocked = () => reject(r.error ?? new Error('Pose storage is unavailable'))));
+      } catch (error) {
+        reject(error);
       }
-    })),
+    }).catch((error) => { b = null; throw error; })),
   l = (S, r) =>
     C().then((E) =>
       E
-        ? new Promise((F) => {
+        ? new Promise((F, reject) => {
             let t = E.transaction(g, S),
               H = r(t.objectStore(g));
-            ((t.oncomplete = () => F(H?.result ?? null)), (t.onerror = t.onabort = () => F(null)));
+            ((t.oncomplete = () => F(H?.result ?? null)),
+              (t.onerror = t.onabort = () => reject(t.error ?? new Error('Pose could not be saved. Check available browser storage.'))));
           })
         : null,
-    ),
+    ).catch((error) => {
+      if (S === 'readonly') return null;
+      throw error;
+    }),
   B = async () => (await l('readonly', (S) => S.getAll())) ?? [],
   L = (S) => l('readonly', (r) => r.get(S));
 async function R(S) {
@@ -76,7 +83,8 @@ function U() {
         ...(K ? { camera: K, ...(T ? { stand: T } : {}) } : {}),
         ...(A ? { from: A } : {}),
       };
-      return ((S = [...S, X]), await l('readwrite', (W) => W.put(X)), D('poses', X.id), c(), X.id);
+      await l('readwrite', (W) => W.put(X));
+      return ((S = [...S, X]), D('poses', X.id), c(), X.id);
     },
     async rename(z, p) {
       let O = S.find((Z) => Z.id === z),
@@ -85,15 +93,15 @@ function U() {
           .slice(0, 60);
       return !O || !J || J === O.name
         ? !1
-        : ((O.name = J), await l('readwrite', (Z) => Z.put(O)), D('poses', O.id), c(), !0);
+        : (await l('readwrite', (Z) => Z.put({ ...O, name: J })), (O.name = J), D('poses', O.id), c(), !0);
     },
     async remove(z) {
       if (!S.some((O) => O.id === z)) return !1;
+      await l('readwrite', (O) => O.delete(z));
       S = S.filter((O) => O.id !== z);
       let p = E.get(z);
       return (
         p && (URL.revokeObjectURL(p), E.delete(z)),
-        await l('readwrite', (O) => O.delete(z)),
         D('poses', z, !0),
         c(),
         !0

@@ -1,3 +1,4 @@
+import { containModalFocus } from './ui/modal';
 import {
   a as V,
   b as D,
@@ -14232,7 +14233,8 @@ function mu({
           return (
             Dh.addEventListener('pointerdown', (DN) => DN.stopPropagation()),
             Dh.addEventListener('click', (DN) => {
-              (DN.stopPropagation(), DI());
+              DN.stopPropagation();
+              Promise.resolve().then(DI).catch((error) => window.alert('Could not update the pose: ' + error.message));
             }),
             Dh
           );
@@ -14250,10 +14252,10 @@ function mu({
             { className: 'lib-tile__own-tools' },
             DB('\u270E', 'Rename this pose', () => {
               let DG = window.prompt('A new name for this pose', Dq.label);
-              DG?.trim() && D8.rename(Dq.id, DG);
+              return DG?.trim() && D8.rename(Dq.id, DG);
             }),
             DB('\u2715', 'Take this pose out of your poses', () => {
-              window.confirm(
+              return window.confirm(
                 'Take \u201C' + Dq.label + '\u201D out of your poses? It cannot be brought back.',
               ) && D8.remove(Dq.id);
             }),
@@ -22658,6 +22660,7 @@ function cf({
 var df = 'cgstuff.news.seen';
 function uf({ button: D3, url: D4 = '/news.json' }) {
   if (!D3) return;
+  let releaseFocus = null;
   let D5 = null,
     D6 = null,
     D7 = document.createElement('span');
@@ -22710,6 +22713,7 @@ function uf({ button: D3, url: D4 = '/news.json' }) {
       DS.append(DE, DC),
       D6.appendChild(DS),
       document.body.appendChild(D6),
+      (releaseFocus = containModalFocus(DS)),
       document.addEventListener('keydown', DD),
       DF.focus());
     try {
@@ -22726,7 +22730,7 @@ function uf({ button: D3, url: D4 = '/news.json' }) {
     }
   }
   function DV() {
-    (D6?.remove(), (D6 = null), document.removeEventListener('keydown', DD), D3.focus());
+    (releaseFocus?.(), (releaseFocus = null), D6?.remove(), (D6 = null), document.removeEventListener('keydown', DD), D3.focus());
   }
   function DD(DS) {
     DS.key === 'Escape' && DV();
@@ -22761,6 +22765,7 @@ function bo(D3, D4, D5) {
 }
 function ff({ button: D3, url: D4 = '/faq.json' }) {
   if (!D3) return;
+  let releaseFocus = null;
   let D5 = null,
     D6 = null;
   async function D7() {
@@ -22794,6 +22799,7 @@ function ff({ button: D3, url: D4 = '/faq.json' }) {
       DV.append(DD, DS),
       D6.appendChild(DV),
       document.body.appendChild(D6),
+      (releaseFocus = containModalFocus(DV)),
       document.addEventListener('keydown', Dk),
       Dm.focus());
     try {
@@ -22813,7 +22819,7 @@ function ff({ button: D3, url: D4 = '/faq.json' }) {
     }
   }
   function D9() {
-    (D6?.remove(), (D6 = null), document.removeEventListener('keydown', Dk), D3.focus());
+    (releaseFocus?.(), (releaseFocus = null), D6?.remove(), (D6 = null), document.removeEventListener('keydown', Dk), D3.focus());
   }
   function Dk(DV) {
     DV.key === 'Escape' && D9();
@@ -26254,8 +26260,13 @@ async function initializeWorkspace() {
       ES = window.prompt(E8 === 'hand' ? 'A name for this hand pose' : 'A name for this pose', '');
     if (!ES?.trim()) return;
     let EE = await r2.pictureOf(E8, EV);
-    (await r1.add({ name: ES, kind: E8, pose: EV, picture: EE, camera: ED, stand: Em, from: rD }),
-      rH.showKind(E8),
+    try {
+      await r1.add({ name: ES, kind: E8, pose: EV, picture: EE, camera: ED, stand: Em, from: rD });
+    } catch (error) {
+      ro('Could not save this pose: ' + error.message);
+      return;
+    }
+    (rH.showKind(E8),
       ro(
         rD
           ? '\u201C' +

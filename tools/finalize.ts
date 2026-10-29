@@ -19,10 +19,15 @@ if (files.some((file) => file.startsWith('scripts/'))) {
   throw new Error('Published scripts must be compiled from src/, not copied from public/scripts.');
 }
 const hash = createHash('sha256');
+const libraryHashes: Record<string, string> = {};
 for (const file of files.filter(
   (file) => !['sw.js', 'version.json', 'recovery-inventory.json'].includes(file),
 )) {
-  hash.update(file).update(await readFile(`out/${file}`));
+  const data = await readFile(`out/${file}`);
+  hash.update(file).update(data);
+  if (file.startsWith('assets/animation-library/')) {
+    libraryHashes[file] = createHash('sha256').update(data).digest('hex');
+  }
 }
 const version = `source-${hash.digest('hex').slice(0, 20)}`;
 const manifest = JSON.parse(await readFile('out/manifest.webmanifest', 'utf8'));
@@ -58,6 +63,7 @@ await build({
     __BUILD_VERSION__: JSON.stringify(version),
     __SHELL_FILES__: JSON.stringify(shell),
     __LIBRARY_SEED__: JSON.stringify(seed),
+    __LIBRARY_HASHES__: JSON.stringify(libraryHashes),
   },
 });
 await writeFile('out/version.json', JSON.stringify({ version }));

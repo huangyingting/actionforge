@@ -29,7 +29,10 @@ The React shell hydrates before the imperative animation engine starts.
 Navigation between tools uses full document loads so their renderer lifetimes
 remain isolated. EngineBootstrap centralizes page loading and startup errors.
 Existing IndexedDB project and animation stores retain their original schema.
+Storage writes resolve only after transaction commit; failed pose operations
+leave the in-memory library unchanged and surface an error to the user.
 Three.js, loaders/exporters, compression and video muxing are npm dependencies.
+Preview video uses WebCodecs VP9 with webm-muxer, retaining MediaRecorder fallback.
 Recovered models, animations and content remain under public/assets/.
 THIRD-PARTY-NOTICES.txt retains upstream notices. recovery-inventory.json is
 historical provenance, not a list of files required by the source build.
@@ -46,8 +49,19 @@ Requirements: Node.js 24 and npm.
 Development runs at http://localhost:3000/ without a deployment prefix.
 Production defaults to /actionforge/; set BASE_PATH for another destination.
 Offline caching is disabled in development to avoid caching development chunks.
+Production library files are content-hashed: updates discard changed assets and
+retain unchanged offline files. The first upgrade from the older unversioned
+library cache clears that cache once; use Fetch the whole library again for
+complete offline access. Only the default library seeds are fetched automatically.
+Motion Lab uses panel navigation on screens at most 1100 pixels wide; desktop
+layout remains unchanged. Preview resolution is capped at device pixel ratio 2.
+Support, FAQ and news dialogs contain keyboard focus and restore it on close.
 Browser checks use Google Chrome at /usr/bin/google-chrome by default.
 Set CHROME_PATH to use another installed Chromium executable.
+Regression checks include aborted writes, storage recovery, service-worker
+upgrades, playable frame-by-frame WebM encoding, modal focus and mobile panels.
+npm run compare-ui checks original layout parity except the intentionally
+improved narrow-screen Motion Lab, which is covered by browser regressions.
 The GitHub Actions workflow builds and publishes out/ on pushes to main.
 The normal build needs no access to actionforge.app or Git history.
 Optional forensic tools are not build prerequisites: reconstruct.ts takes an

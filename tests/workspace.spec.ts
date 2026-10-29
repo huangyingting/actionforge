@@ -272,9 +272,15 @@ test('FAQ, news and support content are available locally', async ({ page }) => 
   for (const id of ['af-faq', 'af-news', 'af-support']) {
     await page.locator(`#${id}`).click();
     await expect(page.getByRole('dialog')).toBeVisible();
+    for (let step = 0; step < 5; step++) {
+      await page.keyboard.press(step % 2 ? 'Tab' : 'Shift+Tab');
+      expect(await page.evaluate(() => !!document.activeElement?.closest('[role="dialog"]'))).toBe(true);
+    }
     await page.keyboard.press('Escape');
+    await expect(page.locator(`#${id}`)).toBeFocused();
+    await expect(page.locator('header')).not.toHaveAttribute('inert');
   }
-  await page.goto('support.html');
+  await page.goto('support');
   await expect(page.locator('#af-support-here')).toContainText('ActionForge is free.');
   await expect(page.locator('#af-support-here')).not.toContainText('Loading…');
 });
@@ -282,7 +288,12 @@ test('FAQ, news and support content are available locally', async ({ page }) => 
 test('Motion Lab edits gait, generates eight directions, and exports', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
-  await page.goto('motion-lab.html');
+  await openWorkspace(page);
+  const link = page.getByRole('link', { name: /Motion Lab/ });
+  await expect(link).toHaveAttribute('href', '/actionforge/motion-lab');
+  await expect(page.locator('.af-mark')).toHaveAttribute('href', '/actionforge/');
+  await link.click();
+  await page.waitForURL('**/motion-lab');
   await expect(page.locator('#status')).not.toHaveText('Loading…');
   await expect(page.locator('#stage')).toBeVisible();
   await page.locator('#gaitPreset').selectOption('Brisk');
@@ -297,6 +308,49 @@ test('Motion Lab edits gait, generates eight directions, and exports', async ({ 
   expect(errors).toEqual([]);
 });
 
+test('mobile Motion Lab keeps preview and all panels usable without horizontal clipping', async ({ browser, baseURL }) => {
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 }, deviceScaleFactor: 3,
+  });
+  const page = await context.newPage();
+  try {
+    await page.goto(new URL('motion-lab', baseURL!).href);
+    await expect(page.locator('#status')).not.toHaveText('Loading…');
+    const navigation = page.getByRole('navigation', { name: 'Motion Lab panels' });
+    await expect(navigation).toBeVisible();
+    const stage = await page.locator('#stage').boundingBox();
+    expect(stage!.width).toBeGreaterThan(300);
+    expect(stage!.height).toBeGreaterThan(200);
+    const ratio = await page.locator('#stage').evaluate(canvas =>
+      (canvas as HTMLCanvasElement).width / canvas.clientWidth);
+    expect(ratio).toBeLessThanOrEqual(2.01);
+    for (const [label, selector] of [
+      ['Edit', '#left'], ['Results', '#right'], ['Library', '#lib'], ['Curves', '#curveDock'],
+    ]) {
+      await navigation.getByRole('button', { name: label, exact: true }).click();
+      const bounds = await page.locator(selector).boundingBox();
+      expect(bounds!.x).toBeGreaterThanOrEqual(0);
+      expect(bounds!.width).toBeLessThanOrEqual(390);
+      expect(bounds!.width).toBeGreaterThan(300);
+      await expect(page.locator(selector)).toBeVisible();
+    }
+    await navigation.getByRole('button', { name: 'Edit', exact: true }).click();
+    await page.locator('#gaitPreset').selectOption('Brisk');
+    await page.locator('#generate').click();
+    await navigation.getByRole('button', { name: 'Results', exact: true }).click();
+    await expect(page.locator('#results')).toContainText('made');
+    await navigation.getByRole('button', { name: 'Preview', exact: true }).click();
+    await expect(page.locator('#stage')).toBeVisible();
+    for (const width of [768, 1024, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      await expect.poll(() => page.locator('#stage').evaluate(canvas =>
+        canvas.clientWidth)).toBe(width);
+    }
+  } finally {
+    await context.close();
+  }
+});
+
 test('service worker keeps the entire library available offline after reload', async ({ page, context }) => {
   await openWorkspace(page);
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
@@ -304,7 +358,7 @@ test('service worker keeps the entire library available offline after reload', a
   await expect(page.locator('#lib-title')).toHaveText('Idle Loop');
   await page.waitForFunction(() => !!navigator.serviceWorker.controller);
   await page.locator('button[data-tool="presets"]').click();
-  await page.getByRole('button', { name: 'Fetch the whole library', exact: true }).click();
+  await page.getByRole('button', { name: /^Fetch the whole library/ }).click();
   await page.waitForFunction(async () => {
     const library = await caches.open('af-library');
     return (await library.keys()).length >= 285;

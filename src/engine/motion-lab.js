@@ -7083,7 +7083,7 @@ var Sn = { l: 640460, r: 16752451 },
     canvas: Object.assign(document.createElement('canvas'), { id: 'stage' }),
   });
 (A('viewport').prepend(No.domElement),
-  No.setPixelRatio(devicePixelRatio),
+  No.setPixelRatio(Math.min(devicePixelRatio || 1, 2)),
   (No.outputColorSpace = kH),
   (No.shadowMap.enabled = !0),
   (No.shadowMap.type = kA));
@@ -11143,6 +11143,7 @@ function ks() {
   (No.setSize(w4, w5), (gn.aspect = w4 / w5), gn.updateProjectionMatrix());
 }
 addEventListener('resize', ks);
+new ResizeObserver(ks).observe(A('viewport'));
 var Dc = performance.now();
 function Pu(w3) {
   let w4 = Math.min(0.05, (w3 - Dc) / 1000);
@@ -11179,7 +11180,7 @@ function Pu(w3) {
         : null,
     ),
     $n.update(),
-    No.render(go, gn),
+    A('viewport').clientWidth > 0 && !document.hidden && No.render(go, gn),
     requestAnimationFrame(Pu));
 }
 ks();

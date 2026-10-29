@@ -4,6 +4,7 @@ import { EngineBootstrap, type AppPage } from './EngineBootstrap';
 import { WorkspaceShell } from './WorkspaceShell';
 import { MotionLabShell } from './MotionLabShell';
 import { SupportShell } from './SupportShell';
+import { MotionLabNavigation } from './MotionLabNavigation';
 
 const shells = {
   workspace: WorkspaceShell,
@@ -16,6 +17,7 @@ export function Application({ page }: { page: AppPage }) {
   return (
     <>
       <Shell />
+      {page === 'motion-lab' && <MotionLabNavigation />}
       <EngineBootstrap page={page} />
     </>
   );

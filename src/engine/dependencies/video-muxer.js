@@ -1,1 +1,1 @@
-export * from 'mp4-muxer';
+export * from 'webm-muxer';

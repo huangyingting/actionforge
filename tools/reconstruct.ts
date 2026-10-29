@@ -69,7 +69,7 @@ const replacements: Record<string, string> = {
   'chunk-LRDA3RI3.js':
     "export { retarget as a, retargetClip as b, clone as c } from 'three/addons/utils/SkeletonUtils.js';",
   'chunk-ACLMWW67.js': "export * from '@comfyorg/fbx-exporter-three';",
-  'chunk-7LC4R6EN.js': "export * from 'mp4-muxer';",
+  'chunk-7LC4R6EN.js': "export * from 'webm-muxer';",
 };
 
 function parse(filename: string, text: string) {

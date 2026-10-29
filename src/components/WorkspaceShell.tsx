@@ -1,10 +1,12 @@
+import { sitePath } from '../site-path';
+
 export function WorkspaceShell() {
   return (
     <>
       {'\n\n'}
       <header className={'af-bar'}>
         {'\n    '}
-        <a className={'af-mark'} href={'/'}>
+        <a className={'af-mark'} href={sitePath()}>
           <b>{'Action'}</b>
           {'Forge '}
           <span className={'af-beta'}>{'Beta'}</span>
@@ -12,7 +14,7 @@ export function WorkspaceShell() {
         {'\n    \n    '}
         <a
           className={'af-lab'}
-          href={'motion-lab.html'}
+          href={sitePath('motion-lab')}
           title={
             'Reshape one animation in depth: its curves, its controls, a style — and its eight directions. What you save there is here under Yours.'
           }
@@ -48,7 +50,7 @@ export function WorkspaceShell() {
           <i aria-hidden={'true'}>{'·'}</i>
           {'\n        \n        '}
           <a
-            href={'/THIRD-PARTY-NOTICES.txt'}
+            href={sitePath('THIRD-PARTY-NOTICES.txt')}
             title={
               'Licences in full, including the MIT notices for the libraries this tool is built on.'
             }

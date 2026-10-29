@@ -1,10 +1,12 @@
+import { sitePath } from '../site-path';
+
 export function SupportShell() {
   return (
     <>
       {'\n\n'}
       <header className={'af-bar'}>
         {'\n    '}
-        <a className={'af-mark'} href={'/'}>
+        <a className={'af-mark'} href={sitePath()}>
           <b>{'Action'}</b>
           {'Forge '}
           <span className={'af-beta'}>{'Beta'}</span>
@@ -14,7 +16,7 @@ export function SupportShell() {
         {'\n    '}
         <a
           className={'af-lab'}
-          href={'/'}
+          href={sitePath()}
           title={'Adjust, pose and export character animation in the browser'}
         >
           {'Open ActionForge'}

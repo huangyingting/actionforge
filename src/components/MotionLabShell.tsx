@@ -1,3 +1,5 @@
+import { sitePath } from '../site-path';
+
 export function MotionLabShell() {
   return (
     <>
@@ -11,7 +13,7 @@ export function MotionLabShell() {
         {'\n  '}
         <a
           className={'af-mark'}
-          href={'./'}
+          href={sitePath()}
           title={'ActionForge: the animations, the Character tool, export'}
         >
           <b>{'Action'}</b>

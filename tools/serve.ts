@@ -3,7 +3,7 @@ import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 
 const root = path.resolve('out');
-const base = (process.env.BASE_PATH || '/actionforge/').replace(/\/$/, '');
+const base = (process.env.BASE_PATH ?? '/actionforge/').replace(/\/$/, '');
 const types: Record<string, string> = {
   '.html': 'text/html',
   '.js': 'text/javascript',
@@ -29,7 +29,11 @@ const server = createServer(async (request, response) => {
     let filename = path.resolve(root, relative || 'index.html');
     if (!filename.startsWith(`${root}${path.sep}`)) throw new Error('Invalid path');
     try {
-      if ((await stat(filename)).isDirectory()) filename = path.join(filename, 'index.html');
+      if ((await stat(filename)).isDirectory()) {
+        const index = path.join(filename, 'index.html');
+        try { await stat(index); filename = index; }
+        catch { filename = filename.replace(/\/$/, '') + '.html'; }
+      }
     } catch {
       if (!path.extname(filename)) filename += '.html';
     }

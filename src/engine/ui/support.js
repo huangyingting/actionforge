@@ -1,3 +1,5 @@
+import { containModalFocus } from './modal';
+
 var p = Object.freeze({
   lines: Object.freeze([
     'ActionForge is free. Tips to help fund development are coming soon.',
@@ -12,6 +14,7 @@ var p = Object.freeze({
 function m({ button: D, config: S = p }) {
   if (!D) return;
   let E = null;
+  let releaseFocus = null;
   D.addEventListener('click', () => F());
   function F() {
     if (E) return;
@@ -36,11 +39,12 @@ function m({ button: D, config: S = p }) {
       H.append(R, j),
       E.appendChild(H),
       document.body.appendChild(E),
+      (releaseFocus = containModalFocus(H)),
       document.addEventListener('keydown', s),
       Q.focus());
   }
   function C() {
-    (E?.remove(), (E = null), document.removeEventListener('keydown', s), D.focus());
+    (releaseFocus?.(), (releaseFocus = null), E?.remove(), (E = null), document.removeEventListener('keydown', s), D.focus());
   }
   function s(H) {
     H.key === 'Escape' && C();

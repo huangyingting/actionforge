@@ -24,10 +24,13 @@ function w() {
       }
       let C = indexedDB.open(y, m);
       ((C.onupgradeneeded = () => S(C.result)),
-        (C.onsuccess = () => E(C.result)),
+        (C.onsuccess = () => {
+          C.result.onversionchange = () => { C.result.close(); u = null; };
+          E(C.result);
+        }),
         (C.onerror = () => F(C.error ?? new Error('Could not open the database'))),
         (C.onblocked = () => F(new Error('Another tab is using an older version'))));
-    })),
+    }).catch((error) => { u = null; throw error; })),
     u)
   );
 }
@@ -37,11 +40,9 @@ var f = (E, F, C) =>
       new Promise((R, Q) => {
         let j = H.transaction(E, F),
           z = C(j.objectStore(E));
-        ((j.onabort = () => Q(j.error)),
-          (j.onerror = () => Q(j.error)),
-          z
-            ? ((z.onsuccess = () => R(z.result)), (z.onerror = () => Q(z.error)))
-            : (j.oncomplete = () => R()));
+        ((j.onabort = () => Q(j.error ?? new Error('Storage write was aborted'))),
+          (j.onerror = () => Q(j.error ?? new Error('Storage operation failed'))),
+          (j.oncomplete = () => R(z?.result)));
       }),
   );
 async function h(r) {
